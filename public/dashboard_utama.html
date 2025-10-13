@@ -131,11 +131,8 @@
             <div class="col-xl-7 col-lg-6 mb-4">
             </div>
         </div>
-
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
         <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
         // ==========================================================
         // == KODE LAMA ANDA DIHAPUS DAN DIGANTI DENGAN INI SEMUA ====
@@ -197,9 +194,9 @@
 
                     if (aktivitas.jenis_aktivitas === 'Presensi Masuk') {
                         const badgeClass = aktivitas.status === 'Terlambat' ? 'bg-warning' : 'bg-success';
-                        badge = `<span class="badge ${badgeClass}">${aktivitas.status} (${jamTampil})</span>`;
+                        badge = `<span class="badge ${badgeClass}">${aktivitas.status} (${formatWaktuLokal(jamTampil)})</span>`;
                     } else {
-                        badge = `<span class="badge bg-primary">Pulang (${jamTampil})</span>`;
+                        badge = `<span class="badge bg-primary">Pulang (${formatWaktuLokal(jamTampil)})</span>`;
                     }
 
                     aktivitasList.innerHTML += `

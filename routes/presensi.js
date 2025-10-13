@@ -77,7 +77,7 @@ router.post('/masuk', checkAuth, async (req, res) => {
 
         // Siapkan objek Date untuk batas waktu masuk pada hari ini
         const hariIni = waktuSekarang.toISOString().slice(0, 10);
-        const waktuBatasMasuk = new Date(`${hariIni}T${batas_jam_masuk}`);
+        const waktuBatasMasuk = new Date(`${hariIni}T${formatWaktuLokal(batas_jam_masuk)}`);
     console.log("Objek Waktu Sekarang:", waktuSekarang);
     console.log("Objek Waktu Batas Masuk:", waktuBatasMasuk);    
 
@@ -89,7 +89,7 @@ router.post('/masuk', checkAuth, async (req, res) => {
         // Simpan jam dalam format string, namun status sudah benar
         await db.query("INSERT INTO presensi (id_guru, tanggal, jam_masuk, foto_masuk, status) VALUES (?, ?, ?, ?, ?);", [id_guru, tanggal_hari_ini, jam_sekarang_string, foto_masuk, status]);
         
-        res.status(201).json({ message: `Presensi masuk berhasil pada jam ${jam_sekarang_string}. Status: ${status}.` });
+        res.status(201).json({ message: `Presensi masuk berhasil pada jam ${formatWaktuLokal(jam_sekarang_string)}. Status: ${status}.` });
 
     } catch (error) {
         console.error("Error saat presensi masuk:", error);
@@ -109,7 +109,7 @@ router.post('/pulang', checkAuth, async (req, res) => {
         if (presensiMasuk[0].jam_pulang) return res.status(409).json({ message: "Anda sudah melakukan presensi pulang hari ini." });
 
         await db.query("UPDATE presensi SET jam_pulang = ?, foto_pulang = ? WHERE id_presensi = ?;", [jam_sekarang, foto_pulang, presensiMasuk[0].id_presensi]);
-        res.status(200).json({ message: `Presensi pulang berhasil pada jam ${jam_sekarang}.` });
+        res.status(200).json({ message: `Presensi pulang berhasil pada jam ${formatWaktuLokal(jam_sekarang)}.` });
     } catch (error) {
         console.error("Error saat presensi pulang:", error);
         res.status(500).json({ message: "Terjadi error pada server." });
