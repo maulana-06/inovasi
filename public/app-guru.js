@@ -272,12 +272,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
             daftarRiwayat.forEach(item => {
                 const tanggal = new Date(item.tanggal).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'short' });
-                const jamPulangTampil = item.jam_pulang || '-'; 
                 riwayatList.innerHTML += `
                     <tr>
                         <td>${tanggal}</td>
-                        <td><span class="badge bg-primary">${formatWaktuLokal(item.jam_masuk) || '-'}</span></td>
-                        <td><span class="badge bg-success">${formatWaktuLokal(jamPulangTampil)}</span></td>
+                        <td><span class="badge bg-primary">${item.jam_masuk || '-'}</span></td>
+                        <td><span class="badge bg-success">${item.jam_pulang || '-'}</span></td>
                         <td>${item.status_kehadiran}</td> 
                     </tr>
                 `;
