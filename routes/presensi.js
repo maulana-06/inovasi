@@ -81,6 +81,7 @@ router.post('/masuk', checkAuth, async (req, res) => {
         // 1. Tentukan nilai untuk `is_telat` (true/false)
         const hariIni = waktuSekarang.toISOString().slice(0, 10);
         const waktuBatasMasuk = new Date(`${hariIni}T${formatWaktuLokal(batas_jam_masuk)}`);
+        
         const is_telat = waktuSekarang > waktuBatasMasuk; // --- [BARU] --- Hasilnya akan true atau false
 
         // 2. Tentukan nilai untuk `status_kehadiran`
