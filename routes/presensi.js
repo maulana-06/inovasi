@@ -72,29 +72,23 @@ router.post('/masuk', checkAuth, async (req, res) => {
             return res.status(403).json({ message: `Lokasi Anda terlalu jauh dari sekolah (${Math.round(jarak)} meter). Radius yang diizinkan: ${radius_meter} meter.` });
         }
 
-        // ===================================================================
-        // ▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼ [BAGIAN INI DIPERBARUI] ▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼
-        // ===================================================================
         const waktuSekarang = new Date();
         const jam_sekarang_string = waktuSekarang.toLocaleTimeString('en-GB');
 
         // 1. Tentukan nilai untuk `is_telat` (true/false)
         const hariIni = waktuSekarang.toISOString().slice(0, 10);
-        const waktuBatasMasuk = new Date(`${hariIni}T${formatWaktuLokal(batas_jam_masuk)}`);
+        const waktuBatasMasuk = new Date(`${hariIni}T${batas_jam_masuk}`);
         
         const is_telat = waktuSekarang > waktuBatasMasuk; // --- [BARU] --- Hasilnya akan true atau false
 
         // 2. Tentukan nilai untuk `status_kehadiran`
-        const status_kehadiran = 'Hadir'; // --- [BARU] --- Untuk presensi masuk, statusnya selalu 'Hadir'
-
-        // 3. Query INSERT yang baru sesuai struktur tabel
+        const status_kehadiran = 'Hadir';         // 3. Query INSERT yang baru sesuai struktur tabel
         const query_insert = `
             INSERT INTO presensi 
             (id_guru, tanggal, jam_masuk, foto_masuk, status_kehadiran, is_telat, latitude_masuk, longitude_masuk) 
             VALUES (?, ?, ?, ?, ?, ?, ?, ?);
         `;
         
-        // --- [DIUBAH] --- Eksekusi query dengan data yang sudah disiapkan
         await db.query(query_insert, [
             id_guru, 
             tanggal_hari_ini, 
@@ -109,9 +103,6 @@ router.post('/masuk', checkAuth, async (req, res) => {
         // --- [DIUBAH] --- Kirim response sukses yang baru
         const status_pesan = is_telat ? 'Terlambat' : 'Tepat Waktu';
         res.status(201).json({ message: `Presensi masuk berhasil pada jam ${formatWaktuLokal(jam_sekarang_string)}. Status: ${status_pesan}.` });
-        // ===================================================================
-        // ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲ [AKHIR BAGIAN DIPERBARUI] ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
-        // ===================================================================
 
     } catch (error) {
         console.error("Error saat presensi masuk:", error);
