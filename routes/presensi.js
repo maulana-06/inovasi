@@ -45,13 +45,11 @@ const calculateDistance = (lat1, lon1, lat2, lon2) => {
     return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
 };
 
-// --- ENDPOINT PRESENSI MASUK ---
 // --- ENDPOINT PRESENSI MASUK (VERSI BARU) ---
 router.post('/masuk', checkAuth, async (req, res) => {
     // Bagian ini tidak berubah, masih mengambil pengaturan yang sudah ada
     const { school_lat, school_lon, radius_meter, batas_jam_masuk } = req.pengaturan;
     const id_guru = req.user.id_guru;
-    // --- [DIUBAH] --- Ambil latitude & longitude dari body untuk disimpan
     const { latitude, longitude, foto_masuk } = req.body; 
     
     try {
@@ -77,12 +75,19 @@ router.post('/masuk', checkAuth, async (req, res) => {
 
         // 1. Tentukan nilai untuk `is_telat` (true/false)
         const hariIni = waktuSekarang.toISOString().slice(0, 10);
+        
+        // === [PERBAIKAN KUNCI] ===
+        // Langsung gunakan `batas_jam_masuk` dari pengaturan tanpa memformatnya.
+        // Ini memastikan `07:30:00` dibaca sebagai `07:30:00` waktu lokal server.
         const waktuBatasMasuk = new Date(`${hariIni}T${batas_jam_masuk}`);
         
-        const is_telat = waktuSekarang > waktuBatasMasuk; // --- [BARU] --- Hasilnya akan true atau false
+        // Perbandingan sekarang akan benar: (07:50 > 07:30) -> true
+        const is_telat = waktuSekarang > waktuBatasMasuk; 
 
         // 2. Tentukan nilai untuk `status_kehadiran`
-        const status_kehadiran = 'Hadir';         // 3. Query INSERT yang baru sesuai struktur tabel
+        const status_kehadiran = 'Hadir';
+
+        // 3. Query INSERT yang baru sesuai struktur tabel
         const query_insert = `
             INSERT INTO presensi 
             (id_guru, tanggal, jam_masuk, foto_masuk, status_kehadiran, is_telat, latitude_masuk, longitude_masuk) 
@@ -94,13 +99,12 @@ router.post('/masuk', checkAuth, async (req, res) => {
             tanggal_hari_ini, 
             jam_sekarang_string, 
             foto_masuk, 
-            status_kehadiran, // Kolom baru
-            is_telat,         // Kolom baru
-            latitude,         // Kolom baru (menyimpan bukti lokasi)
-            longitude         // Kolom baru (menyimpan bukti lokasi)
+            status_kehadiran,
+            is_telat,
+            latitude,
+            longitude
         ]);
         
-        // --- [DIUBAH] --- Kirim response sukses yang baru
         const status_pesan = is_telat ? 'Terlambat' : 'Tepat Waktu';
         res.status(201).json({ message: `Presensi masuk berhasil pada jam ${formatWaktuLokal(jam_sekarang_string)}. Status: ${status_pesan}.` });
 
