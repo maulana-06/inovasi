@@ -275,8 +275,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 riwayatList.innerHTML += `
                     <tr>
                         <td>${tanggal}</td>
-                        <td><span class="badge bg-primary">${item.jam_masuk || '-'}</span></td>
-                        <td><span class="badge bg-success">${item.jam_pulang || '-'}</span></td>
+                        <td><span class="badge bg-primary">${formatWaktuLokal(item.jam_masuk) || '-'}</span></td>
+                        <td><span class="badge bg-success">${formatWaktuLokal(item.jam_pulang) || '-'}</span></td>
                         <td>${item.status_kehadiran}</td> 
                     </tr>
                 `;
