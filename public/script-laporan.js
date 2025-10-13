@@ -1,6 +1,7 @@
-// File: /public/script-laporan.js (SUDAH DIPERBAIKI)
+// File: /public/script-laporan.js (PERBAIKAN FINAL)
 
 document.addEventListener('DOMContentLoaded', function() {
+    // Variabel elemen halaman dideklarasikan CUKUP SATU KALI di sini
     const filterBulan = document.getElementById('filter-bulan');
     const filterTahun = document.getElementById('filter-tahun');
     const tombolTampilkan = document.getElementById('tombol-tampilkan');
@@ -8,10 +9,12 @@ document.addEventListener('DOMContentLoaded', function() {
     const tombolExport = document.getElementById('exportExcelBtn');
     const getGuruDataBtn = document.getElementById('getGuruDataBtn');
 
+    // Inisialisasi filter
     if (filterBulan && filterTahun) {
         isiFilter(filterBulan, filterTahun);
     }
     
+    // Tambahkan event listener.
     if (tombolTampilkan) tombolTampilkan.addEventListener('click', tampilkanLaporan);
     if (tombolCetak) tombolCetak.addEventListener('click', () => window.print());
     if (tombolExport) tombolExport.addEventListener('click', exportLaporanExcel);
@@ -40,11 +43,13 @@ function isiFilter(filterBulan, filterTahun) {
 }
 
 async function tampilkanLaporan() {
+    // Variabel dari scope luar akan otomatis digunakan di sini
     const filterBulan = document.getElementById('filter-bulan');
     const filterTahun = document.getElementById('filter-tahun');
+    const tombolCetak = document.getElementById('tombol-cetak');
+    
     const tabelBody = document.getElementById('tabel-laporan-body');
     const judulLaporan = document.getElementById('judul-laporan');
-    const tombolCetak = document.getElementById('tombol-cetak');
     
     const bulan = filterBulan.value;
     const tahun = filterTahun.value;
@@ -61,7 +66,7 @@ async function tampilkanLaporan() {
         });
         
         if (!response.ok) {
-            const errorData = await response.json().catch(() => ({ message: 'Gagal mengambil data laporan.' }));
+            const errorData = await response.json().catch(() => ({ message: 'Terjadi error pada server.' }));
             throw new Error(errorData.message);
         }
         
@@ -96,13 +101,17 @@ async function tampilkanLaporan() {
 }
 
 // =================================================================
-// FUNGSI EKSPOR EXCEL YANG SUDAH DIPERBAIKI TOTAL
+// FUNGSI EKSPOR EXCEL
 // =================================================================
 async function exportLaporanExcel() {
+    // Variabel dari scope luar akan otomatis digunakan di sini
     const tombolExport = document.getElementById('exportExcelBtn');
-    const bulanValue = document.getElementById('filter-bulan').value;
-    const bulanTeks = document.getElementById('filter-bulan').options[document.getElementById('filter-bulan').selectedIndex].text.toUpperCase();
-    const tahun = document.getElementById('filter-tahun').value;
+    const filterBulan = document.getElementById('filter-bulan');
+    const filterTahun = document.getElementById('filter-tahun');
+
+    const bulanValue = filterBulan.value;
+    const bulanTeks = filterBulan.options[filterBulan.selectedIndex].text.toUpperCase();
+    const tahun = filterTahun.value;
     const token = localStorage.getItem('token');
 
     tombolExport.disabled = true;
@@ -118,10 +127,7 @@ async function exportLaporanExcel() {
             throw new Error(errorData.message);
         }
 
-        // Ambil SEMUA data yang sudah dipaketkan oleh server
         const dataFromServer = await response.json();
-        
-        // Gunakan nama variabel yang jelas dari dataFromServer
         const daftarGuruUtama = dataFromServer.daftarGuru;
         const dataPresensiHarian = dataFromServer.dataPresensi;
         const rekapitulasiAkurat = dataFromServer.dataRekapFinal;
@@ -136,19 +142,17 @@ async function exportLaporanExcel() {
         const headerGrup = ["", "", "", bulanTeks, ...Array(30).fill(""), "Jumlah Kehadiran"];
 
         const dataBody = daftarGuruUtama.map((guru, index) => {
-            // Langkah 1: Siapkan grid harian
             const barisTanggal = Array(31).fill("");
             dataPresensiHarian.filter(p => p.id_guru == guru.id_guru).forEach(p => {
                 const tanggal = new Date(p.tanggal).getDate() - 1;
-                const statusBersih = p.status.trim().toLowerCase();
+                const statusHadir = p.status_kehadiran.toLowerCase();
 
-                if (statusBersih === 'hadir' || statusBersih === 'terlambat') { barisTanggal[tanggal] = '✔'; }
-                else if (statusBersih === 'sakit') { barisTanggal[tanggal] = 'S'; }
-                else if (statusBersih === 'izin') { barisTanggal[tanggal] = 'I'; }
-                else if (statusBersih === 'alpa') { barisTanggal[tanggal] = 'A'; }
+                if (statusHadir === 'hadir') { barisTanggal[tanggal] = '✔'; }
+                else if (statusHadir === 'sakit') { barisTanggal[tanggal] = 'S'; }
+                else if (statusHadir === 'izin') { barisTanggal[tanggal] = 'I'; }
+                else if (statusHadir === 'alpa') { barisTanggal[tanggal] = 'A'; }
             });
 
-            // Langkah 2: Ambil rekap yang sudah akurat dari server
             const rekapGuruIni = rekapitulasiAkurat.find(r => r.id_guru == guru.id_guru);
             
             const hadir = rekapGuruIni ? parseInt(rekapGuruIni.hadir) : 0;
@@ -157,7 +161,6 @@ async function exportLaporanExcel() {
             const alpa = rekapGuruIni ? parseInt(rekapGuruIni.alpa) : 0;
             const jumlahTotal = hadir + sakit + izin + alpa;
 
-            // Langkah 3: Gabungkan grid harian dengan rekap akurat
             return [index + 1, guru.nama_lengkap, guru.nip_nipppk, ...barisTanggal, hadir, sakit, izin, alpa, jumlahTotal];
         });
 
@@ -178,8 +181,11 @@ async function exportLaporanExcel() {
         tombolExport.innerHTML = '<i class="bi bi-file-earmark-excel-fill me-2"></i>Export ke Excel';
     }
 }
+
 async function buatDanTampilkanAkunAwal() {
+    // Variabel dari scope luar akan otomatis digunakan di sini
     const getGuruDataBtn = document.getElementById('getGuruDataBtn');
+
     const hasilDataGuruDiv = document.getElementById('hasilDataGuru');
     const dataOutputPre = document.getElementById('dataOutput');
     const errorMessageDiv = document.getElementById('errorMessage');

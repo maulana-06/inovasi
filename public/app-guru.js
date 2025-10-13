@@ -37,7 +37,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const tombolAmbilFoto = document.getElementById('tombol-ambil-foto');
     let stream;
     
-    // --- VARIABEL UNTUK RESOLUSI RENDAH DARI ambil-foto.html ---
+    // --- VARIABEL UNTUK Foto RESOLUSI RENDAH ---
     const TARGET_WIDTH = 320; // Lebar akhir yang lebih kecil (Contoh: 320px)
     const TARGET_HEIGHT = 240; // Tinggi akhir yang lebih kecil (Contoh: 240px)
     const JPEG_QUALITY = 0.6; // Kualitas kompresi JPEG (0.0 hingga 1.0)
@@ -264,7 +264,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const daftarRiwayat = await response.json();
             riwayatList.innerHTML = '';
             
-            // [DIPERBAIKI] Kesalahan pengetikan '<strong>0</strong>' diubah menjadi angka 0
+            // Kesalahan pengetikan '<strong>0</strong>' diubah menjadi angka 0
             if (daftarRiwayat.length === 0) {
                 riwayatList.innerHTML = '<tr><td colspan="4" class="text-center text-muted">Tidak ada data presensi untuk periode ini.</td></tr>';
                 return;
@@ -272,12 +272,13 @@ document.addEventListener('DOMContentLoaded', function() {
 
             daftarRiwayat.forEach(item => {
                 const tanggal = new Date(item.tanggal).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'short' });
+                const jamPulangTampil = item.jam_pulang || '-'; 
                 riwayatList.innerHTML += `
                     <tr>
                         <td>${tanggal}</td>
-                        <td><span class="badge bg-primary">${formatWaktuLokal(item.jam_masuk)}</span></td>
-                        <td><span class="badge bg-success">${formatWaktuLokal(item.jam_pulang)}</span></td>
-                        <td>${item.status}</td>
+                        <td><span class="badge bg-primary">${formatWaktuLokal(item.jam_masuk) || '-'}</span></td>
+                        <td><span class="badge bg-success">${formatWaktuLokal(jamPulangTampil)}</span></td>
+                        <td>${item.status_kehadiran}</td> 
                     </tr>
                 `;
             });

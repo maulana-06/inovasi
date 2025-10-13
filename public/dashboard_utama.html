@@ -10,7 +10,7 @@
 
     <style>
         body {
-            background-color: #f0f2f5;
+            background-color: #b4cef5;
         }
         .card {
             border: none;
@@ -19,7 +19,7 @@
         }
         .card:hover {
             transform: translateY(-5px);
-            box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+            box-shadow: 0 8px 16px rgba(20, 35, 177, 0.1);
         }
         .summary-card-icon {
             font-size: 3rem;
@@ -131,169 +131,150 @@
             <div class="col-xl-7 col-lg-6 mb-4">
             </div>
         </div>
-        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script>
-        // ==========================================================
-        // == KODE LAMA ANDA DIHAPUS DAN DIGANTI DENGAN INI SEMUA ====
-        // ==========================================================
 
-        // Fungsi untuk logout
-        function logout() {
-            localStorage.removeItem('token');
-            window.location.href = 'index.html';
-        }
-        document.getElementById('tombol-exit').addEventListener('click', logout);
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    // ==========================================================
+    // == KODE BARU YANG SUDAH DIPERBAIKI =======================
+    // ==========================================================
+    function logout() {
+        localStorage.removeItem('token');
+        window.location.href = 'index.html';
+    }
 
-        // Fungsi untuk memformat tanggal
-        function tampilkanTanggal() {
-            const dateElement = document.getElementById('current-date');
-            const today = new Date();
-            const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-            dateElement.textContent = today.toLocaleDateString('id-ID', options);
-        }
-        
-        // Deklarasi variabel grafik di luar fungsi agar bisa di-update
-        let attendanceChart;
+    function tampilkanTanggal() {
+        const dateElement = document.getElementById('current-date');
+        const today = new Date();
+        const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+        dateElement.textContent = today.toLocaleDateString('id-ID', options);
+    }
 
-        // Fungsi utama untuk mengambil dan menampilkan semua data dasbor
-        async function muatDataDasbor() {
-            const token = localStorage.getItem('token');
-            try {
-                const response = await fetch('/api/dashboard/summary', {
-                    headers: {
-                        'Authorization': 'Bearer ' + token // <-- Berikan tiketnya di sini
-                    }
-                });
-                if (!response.ok) throw new Error('Gagal mengambil data dasbor.');
-                
-                const data = await response.json();
+    let attendanceChart;
 
-                // 1. Update Kartu Ringkasan
-                document.querySelector('.card.border-success .h3').textContent = data.summary_cards.hadir;
-                document.querySelector('.card.border-warning .h3').textContent = data.summary_cards.terlambat;
-                document.querySelector('.card.border-info .h3').textContent = data.summary_cards.izin_sakit;
-                document.querySelector('.card.border-danger .h3').textContent = data.summary_cards.belum_ada_kabar;
-                // 2. Update Grafik Kehadiran
-                const chartData = [
-                    data.summary_cards.hadir,
-                    data.summary_cards.terlambat,
-                    data.summary_cards.izin_sakit,
-                    data.summary_cards.belum_ada_kabar
-                ];
-                updateGrafik(chartData);
-                
-                // 3. Update Aktivitas Terkini
-                const aktivitasList = document.querySelector('#aktivitas-list'); 
-                aktivitasList.innerHTML = ''; // Kosongkan list
-                if (data.aktivitas_terkini.length > 0) {
+    async function muatDataDasbor() {
+        const token = localStorage.getItem('token');
+        try {
+            const response = await fetch('/api/dashboard/summary', {
+                headers: { 'Authorization': 'Bearer ' + token }
+            });
+            if (!response.ok) throw new Error('Gagal mengambil data dasbor.');
+            
+            const data = await response.json();
+
+            // 1. Update Kartu Ringkasan
+            document.querySelector('.card.border-success .h3').textContent = data.summary_cards.hadir;
+            document.querySelector('.card.border-warning .h3').textContent = data.summary_cards.terlambat;
+            document.querySelector('.card.border-info .h3').textContent = data.summary_cards.izin_sakit;
+            document.querySelector('.card.border-danger .h3').textContent = data.summary_cards.belum_ada_kabar;
+
+            // 2. Update Grafik Kehadiran
+            const chartData = [
+                data.summary_cards.hadir,
+                data.summary_cards.terlambat,
+                data.summary_cards.izin_sakit,
+                data.summary_cards.belum_ada_kabar
+            ];
+            updateGrafik(chartData);
+            
+            // 3. Update Aktivitas Terkini
+            const aktivitasList = document.getElementById('aktivitas-list');
+            aktivitasList.innerHTML = '';
+            if (data.aktivitas_terkini.length > 0) {
                 data.aktivitas_terkini.forEach(aktivitas => {
-
-                    const jamTampil = aktivitas.waktu_aksi; 
+                    const jamTampil = aktivitas.waktu_aksi;
                     let badge;
-
                     if (aktivitas.jenis_aktivitas === 'Presensi Masuk') {
-                        const badgeClass = aktivitas.status === 'Terlambat' ? 'bg-warning' : 'bg-success';
-                        badge = `<span class="badge ${badgeClass}">${aktivitas.status} (${formatWaktuLokal(jamTampil)})</span>`;
+                        const badgeClass = aktivitas.status === 'Terlambat' ? 'bg-warning text-dark' : 'bg-success';
+                        badge = `<span class="badge ${badgeClass}">${aktivitas.status}</span>`;
                     } else {
-                        badge = `<span class="badge bg-primary">Pulang (${formatWaktuLokal(jamTampil)})</span>`;
+                        badge = `<span class="badge bg-primary">Pulang</span>`;
                     }
-
                     aktivitasList.innerHTML += `
                         <li class="list-group-item d-flex justify-content-between align-items-center">
                             <div>
                                 <strong class="d-block">${aktivitas.nama_lengkap}</strong>
-                                <small class="text-muted">${aktivitas.jenis_aktivitas}</small>
+                                <small class="text-muted">${formatWaktuLokal(jamTampil)} - ${aktivitas.jenis_aktivitas}</small>
                             </div>
                             ${badge}
-                        </li>
-                    `;
+                        </li>`;
                 });
-                } else {
-                    aktivitasList.innerHTML = '<li class="list-group-item text-muted">Belum ada aktivitas presensi hari ini.</li>';
-                }
-
-                // 4. Update Permintaan Persetujuan
-                const permintaanList = document.querySelector('#permintaan-list');
-                permintaanList.innerHTML = '';
-                 if (data.permintaan_persetujuan.length > 0) {
-                    data.permintaan_persetujuan.forEach(req => {
-                        permintaanList.innerHTML += `
-                            <li class="list-group-item d-flex justify-content-between align-items-center">
-                               <div>
-                                    <strong class="d-block">${req.nama_lengkap}</strong>
-                                    <small class="text-muted">Mengajukan Izin untuk ${new Date(req.tanggal_mulai).toLocaleDateString('id-ID')}</small>
-                               </div>
-                               <a href="manajemen-izin.html" class="btn btn-primary btn-sm">Lihat Detail</a>
-                            </li>
-                        `;
-                    });
-                } else {
-                    permintaanList.innerHTML = '<li class="list-group-item text-muted">Tidak ada permintaan persetujuan baru.</li>';
-                }
-
-
-            } catch (error) {
-                console.error("Error:", error);
-                // Mungkin tampilkan pesan error di halaman
-            }
-        };
-        
-        // Fungsi untuk membuat atau memperbarui grafik
-        function updateGrafik(data) {
-            const ctx = document.getElementById('attendanceChart').getContext('2d');
-            if (attendanceChart) {
-                attendanceChart.data.datasets[0].data = data;
-                attendanceChart.update();
             } else {
-                attendanceChart = new Chart(ctx, {
-                    type: 'doughnut',
-                    data: {
-                        labels: ['Hadir', 'Terlambat', 'Izin/Sakit', 'Belum Ada Kabar'],
-                        datasets: [{
-                            label: 'Jumlah Guru',
-                            data: data,
-                            backgroundColor: ['#198754', '#ffc107', '#0dcaf0', '#dc3545'],
-                            borderColor: '#fff',
-                            borderWidth: 2
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: { legend: { position: 'bottom' } }
-                    }
-                });
+                aktivitasList.innerHTML = '<li class="list-group-item text-muted">Belum ada aktivitas presensi hari ini.</li>';
             }
-        };
 
-        // Panggil fungsi-fungsi saat halaman dimuat
-        document.addEventListener('DOMContentLoaded', function() {
-        // Ambil token dari penyimpanan
-        const token = localStorage.getItem('token');
-
-        // 1. Cek dulu, apakah tokennya ada?
-        if (!token) {
-            // Jika tidak ada token, paksa kembali ke halaman login
-            alert('Anda harus login terlebih dahulu.');
-            window.location.href = 'login-admin.html';
-        } else {
-            // 2. Jika token ada, baru jalankan semua fungsi dasbor
-            document.getElementById('tombol-exit').addEventListener('click', logout);
-            tampilkanTanggal();
-            muatDataDasbor(token); // Kirim token ke fungsi muat data
+            // 4. Update Permintaan Persetujuan
+            const permintaanList = document.getElementById('permintaan-list');
+            permintaanList.innerHTML = '';
+            if (data.permintaan_persetujuan.length > 0) {
+                data.permintaan_persetujuan.forEach(req => {
+                    permintaanList.innerHTML += `
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                           <div>
+                                <strong class="d-block">${req.nama_lengkap}</strong>
+                                <small class="text-muted">Mengajukan Izin (mulai ${new Date(req.tanggal_mulai).toLocaleDateString('id-ID')})</small>
+                           </div>
+                           <a href="manajemen-izin.html" class="btn btn-info btn-sm">Proses</a>
+                        </li>`;
+                });
+            } else {
+                permintaanList.innerHTML = '<li class="list-group-item text-muted">Tidak ada permintaan persetujuan baru.</li>';
+            }
+        } catch (error) {
+            console.error("Error:", error);
+            document.querySelector('.container-fluid').innerHTML = `<div class="alert alert-danger"><strong>Error:</strong> Gagal memuat data dasbor. Pastikan Anda sudah login dan server berjalan.</div>`;
         }
-    });
+    }
+
+    function updateGrafik(data) {
+        const ctx = document.getElementById('attendanceChart').getContext('2d');
+        if (attendanceChart) {
+            attendanceChart.data.datasets[0].data = data;
+            attendanceChart.update();
+        } else {
+            attendanceChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Hadir Tepat Waktu', 'Terlambat', 'Izin/Sakit', 'Belum Ada Kabar'],
+                    datasets: [{
+                        label: 'Jumlah Guru',
+                        data: data,
+                        backgroundColor: ['#198754', '#ffc107', '#0dcaf0', '#dc3545'],
+                        borderColor: '#fff',
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { position: 'bottom' } }
+                }
+            });
+        }
+    }
+
+    // 1. Cek dulu, apakah tokennya ada?
+    const token = localStorage.getItem('token');
+    if (!token) {
+        // Jika tidak ada token, paksa kembali ke halaman login
+        alert('Anda harus login terlebih dahulu.');
+        window.location.href = 'index.html';
+    } else {
+        // 2. Jika token ada, baru jalankan semua fungsi dasbor
+        document.getElementById('tombol-exit').addEventListener('click', logout);
+        tampilkanTanggal();
+        muatDataDasbor(); // Panggil fungsi utama untuk memuat data
+    }
+
     // Muat ulang data setiap kali pengguna kembali ke tab/jendela ini
     window.addEventListener('focus', function() {
         console.log("Tab dasbor kembali aktif, memuat ulang data...");
-        const token = localStorage.getItem('token');
-        if (token) {
-            muatDataDasbor(token); // Panggil fungsi muat data lagi
+        if (localStorage.getItem('token')) {
+            muatDataDasbor(); // Panggil fungsi muat data lagi
         }
     });
 
-function formatWaktuLokal(waktuUTC) {
+  function formatWaktuLokal(waktuUTC) {
   if (!waktuUTC) {
     return '-';
   }
@@ -307,6 +288,7 @@ function formatWaktuLokal(waktuUTC) {
     minute: '2-digit',
     hour12: false 
   };
+
   return tanggal.toLocaleTimeString('id-ID', options);
 }
 </script>

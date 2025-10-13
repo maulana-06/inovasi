@@ -1,4 +1,4 @@
-// File: /routes/dashboard.js
+// File: /routes/dashboard.js (VERSI BARU)
 
 const express = require('express');
 const router = express.Router();
@@ -8,57 +8,53 @@ const { checkAuth, checkAdmin } = require('../middleware/auth');
 router.get('/summary', [checkAuth, checkAdmin], async (req, res) => { 
     try {
         const tanggal_hari_ini = new Date().toISOString().slice(0, 10);
-console.log(`Mencari data untuk tanggal: ${tanggal_hari_ini}`); // Log Tanggal
 
-        // 1. Menghitung ringkasan presensi (hadir, terlambat)
+        // --- [DIUBAH] --- 1. Menghitung ringkasan presensi (hadir, terlambat)
         const [presensiSummary] = await db.query(
             `SELECT
                 COUNT(*) as total_hadir,
-                SUM(CASE WHEN status = 'Terlambat' THEN 1 ELSE 0 END) as total_terlambat
-             FROM presensi WHERE tanggal = ?;`,
+                SUM(is_telat) as total_terlambat
+             FROM presensi WHERE tanggal = ? AND status_kehadiran = 'Hadir';`,
             [tanggal_hari_ini]
         );
-console.log("Hasil Query Presensi:", presensiSummary); 
 
-        // 2. Menghitung ringkasan izin/sakit (VERSI PERBAIKAN)
+        // Query ini tidak berubah, sudah benar
         const [izinSummary] = await db.query(
             `SELECT COUNT(*) as total_izin_sakit FROM izin_sakit_tugas
             WHERE status = 'Disetujui' AND tanggal_mulai <= ? AND tanggal_selesai >= ?;`,
             [tanggal_hari_ini, tanggal_hari_ini]
         );
-console.log("Hasil Query Izin/Sakit:", izinSummary);
 
-        // 3. Menghitung total guru aktif
+        // Query ini tidak berubah, sudah benar
         const [totalGuru] = await db.query("SELECT COUNT(*) as total_aktif FROM guru WHERE status = 'Aktif';");
 
-        // 4. Mengambil 5 aktivitas presensi terkini
+        // --- [DIUBAH] --- 4. Mengambil 5 aktivitas presensi terkini
         const [aktivitasTerkini] = await db.query(
-            `(SELECT g.nama_lengkap, p.jam_masuk AS waktu_aksi, 'Presensi Masuk' AS jenis_aktivitas, p.status
+            `(SELECT g.nama_lengkap, p.jam_masuk AS waktu_aksi, 'Presensi Masuk' AS jenis_aktivitas, 
+                CASE WHEN p.is_telat = TRUE THEN 'Terlambat' ELSE 'Tepat Waktu' END AS status
                 FROM presensi p JOIN guru g ON p.id_guru = g.id_guru
-                WHERE p.tanggal = ? AND p.jam_masuk IS NOT NULL)
+                WHERE p.tanggal = ? AND p.jam_masuk IS NOT NULL AND p.status_kehadiran = 'Hadir')
             UNION ALL
-            (SELECT g.nama_lengkap, p.jam_pulang AS waktu_aksi, 'Presensi Pulang' AS jenis_aktivitas, p.status
+            (SELECT g.nama_lengkap, p.jam_pulang AS waktu_aksi, 'Presensi Pulang' AS jenis_aktivitas, 'Tepat Waktu' AS status
                 FROM presensi p JOIN guru g ON p.id_guru = g.id_guru
-                WHERE p.tanggal = ? AND p.jam_pulang IS NOT NULL)
+                WHERE p.tanggal = ? AND p.jam_pulang IS NOT NULL AND p.status_kehadiran = 'Hadir')
             ORDER BY waktu_aksi DESC LIMIT 5;`,
             [tanggal_hari_ini, tanggal_hari_ini]
         );
-console.log("Hasil Query Total Guru:", totalGuru); 
 
-        // 5. Mengambil 5 permintaan izin yang menunggu persetujuan
+        // Query ini tidak berubah, sudah benar
         const [permintaanIzin] = await db.query(
             `SELECT g.nama_lengkap, i.tanggal_mulai, i.id_izin FROM izin_sakit_tugas i
              JOIN guru g ON i.id_guru = g.id_guru
              WHERE i.status = 'Menunggu Persetujuan' ORDER BY i.created_at DESC LIMIT 5;`
         );
 
-        // Kalkulasi "Belum Ada Kabar"
+        // Logika kalkulasi di bawah ini akan otomatis menjadi benar karena sumber datanya sudah diperbaiki.
         const hadir = presensiSummary[0].total_hadir || 0;
         const izin_sakit = izinSummary[0].total_izin_sakit || 0;
         const total_aktif = totalGuru[0].total_aktif || 0;
         const belum_ada_kabar = total_aktif - hadir - izin_sakit;
 
-        // Gabungkan semua data menjadi satu objek JSON
         const responseData = {
             summary_cards: {
                 hadir: hadir,
