@@ -95,17 +95,38 @@
                     <div class="card-header bg-dark text-white">Formulir Pengajuan Izin/Sakit</div>
                     <div class="card-body">
                         <form id="form-izin">
-                            <div class="mb-3"><label for="jenis-izin" class="form-label">Jenis Pengajuan</label><select id="jenis-izin" class="form-select" required><option value="Izin">Izin</option><option value="Sakit">Sakit</option></select></div>
-                            <div class="mb-3"><label for="tanggal-mulai" class="form-label">Dari Tanggal</label><input type="date" id="tanggal-mulai" class="form-control" required></div>
-                            <div class="mb-3"><label for="tanggal-selesai" class="form-label">Sampai Tanggal</label><input type="date" id="tanggal-selesai" class="form-control" required></div>
-                            <div class="mb-3"><label for="keterangan" class="form-label">Keterangan</label><textarea id="keterangan" class="form-control" rows="3" required></textarea></div>
-                            <button type="submit" class="btn btn-primary w-100">Kirim Pengajuan</button>
+                            <div class="mb-3">
+                                <label for="jenis-izin" class="form-label">Jenis Pengajuan</label>
+                                <select id="jenis-izin" class="form-select" required>
+                                    <option value="Izin">Izin</option>
+                                    <option value="Sakit">Sakit</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label for="tanggal-mulai" class="form-label">Dari Tanggal</label>
+                                <input type="date" id="tanggal-mulai" class="form-control" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="tanggal-selesai" class="form-label">Sampai Tanggal</label>
+                                <input type="date" id="tanggal-selesai" class="form-control" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="keterangan" class="form-label">Keterangan</label>
+                                <textarea id="keterangan" class="form-control" rows="3" required></textarea>
+                            </div>
+
+                            <div class="mb-3 d-none" id="form-grup-bukti">
+                                <label for="file-pendukung" class="form-label">Bukti Pendukung (Wajib jika Sakit)</label>
+                                <input type="file" id="file-pendukung" class="form-control" accept="image/*,.pdf">
+                                <small class="text-muted">Format: PDF, JPG, PNG. Maks: 2MB.</small>
+                            </div>
+                            <button type="submit" id="tombol-kirim-izin" class="btn btn-primary w-100">
+                                Kirim Pengajuan
+                            </button>
                         </form>
                     </div>
                 </div>
-            </div>
-        </div>    
-       
+            </div>       
         <nav class="navbar fixed-bottom bg-white shadow-lg">
         <div class="container-fluid">
             <ul class="nav nav-fill w-100">

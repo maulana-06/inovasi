@@ -30,6 +30,10 @@ document.addEventListener('DOMContentLoaded', function() {
     const riwayatList = document.getElementById('riwayat-presensi-list');
 
     const formIzin = document.getElementById('form-izin');
+    const jenisIzinSelect = document.getElementById('jenis-izin');
+    const formGrupBukti = document.getElementById('form-grup-bukti');
+    const filePendukungInput = document.getElementById('file-pendukung');
+    const tombolKirimIzin = document.getElementById('tombol-kirim-izin');
 
     const cameraModal = new bootstrap.Modal(document.getElementById('cameraModal'));
     const videoElem = document.getElementById('camera-preview');
@@ -144,6 +148,7 @@ document.addEventListener('DOMContentLoaded', function() {
         tombolPresensi.addEventListener('click', handleTombolPresensi);
         tombolAmbilFoto.addEventListener('click', handleAmbilFoto);
         formIzin.addEventListener('submit', kirimFormIzin);
+        jenisIzinSelect.addEventListener('change', handleJenisIzinChange);
         filterBulanRiwayat.addEventListener('change', muatDataRiwayat);
         filterTahunRiwayat.addEventListener('change', muatDataRiwayat);
     }
@@ -246,6 +251,16 @@ document.addEventListener('DOMContentLoaded', function() {
             await muatDataStatusAwal();
         }
     }
+    function handleJenisIzinChange() {
+        if (jenisIzinSelect.value === 'Sakit') {
+            formGrupBukti.classList.remove('d-none'); // Tampilkan
+            filePendukungInput.required = true;       // Jadikan wajib
+        } else {
+            formGrupBukti.classList.add('d-none');   // Sembunyikan
+            filePendukungInput.required = false;      // Tidak wajib
+            filePendukungInput.value = null;          // Kosongkan file jika diganti
+        }
+    }
 
     function isiFilterRiwayat() {
         const namaBulan = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
@@ -296,7 +311,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 headers: { 'Authorization': 'Bearer ' + token }
             });
             
-            // Kita tidak melempar error jika 404 (tidak ada pengumuman)
+            // JIka error 404 (tidak ada pengumuman)
             if (!response.ok) {
                  areaPengumuman.classList.add('d-none'); // Sembunyikan jika error
                  return; 
@@ -316,27 +331,73 @@ document.addEventListener('DOMContentLoaded', function() {
             areaPengumuman.classList.add('d-none'); // Sembunyikan jika error
         }
     }
-    async function kirimFormIzin(event) {
+
+async function kirimFormIzin(event) {
         event.preventDefault();
-        const dataIzin = {
-            jenis_izin: document.getElementById('jenis-izin').value,
-            tanggal_mulai: document.getElementById('tanggal-mulai').value,
-            tanggal_selesai: document.getElementById('tanggal-selesai').value,
-            keterangan: document.getElementById('keterangan').value
-        };
+        
+        // Nonaktifkan tombol
+        tombolKirimIzin.disabled = true;
+        tombolKirimIzin.textContent = 'Mengirim...';
+
+        // DIUBAH: Kita sekarang menggunakan FormData, bukan objek JSON
+        const dataForm = new FormData();
+        
+        // Ambil semua data dari form
+        const jenis_izin = jenisIzinSelect.value;
+        const file_input = filePendukungInput.files[0]; // Ambil file
+
+        // 1. Validasi Frontend
+        if (jenis_izin === 'Sakit' && !file_input) {
+            alert('Anda harus meng-upload file bukti pendukung untuk pengajuan Sakit.');
+            tombolKirimIzin.disabled = false;
+            tombolKirimIzin.textContent = 'Kirim Pengajuan';
+            return; // Hentikan pengiriman
+        }
+
+        // 2. Masukkan data teks ke FormData
+        dataForm.append('jenis_izin', jenis_izin);
+        dataForm.append('tanggal_mulai', document.getElementById('tanggal-mulai').value);
+        dataForm.append('tanggal_selesai', document.getElementById('tanggal-selesai').value);
+        dataForm.append('keterangan', document.getElementById('keterangan').value);
+
+        // 3. Masukkan file ke FormData (jika ada)
+        if (file_input) {
+            // Nama 'file_pendukung' harus sama dengan di backend (multer)
+            dataForm.append('file_pendukung', file_input); 
+        }
+
         try {
+            // DIUBAH: Fetch request
             const response = await fetch('/api/izin', {
-                method: 'POST', headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' }, body: JSON.stringify(dataIzin)
+                method: 'POST',
+                headers: { 
+                    'Authorization': 'Bearer ' + token
+                    // 'Content-Type' TIDAK DI-SET. 
+                    // Browser akan otomatis mengaturnya ke 'multipart/form-data'
+                },
+                body: dataForm // Kirim FormData sebagai body
             });
+            
             const hasil = await response.json();
-            if (!response.ok) throw new Error(hasil.message);
+            
+            if (!response.ok) {
+                throw new Error(hasil.message || 'Gagal mengirim pengajuan.');
+            }
+            
             alert(hasil.message);
             formIzin.reset(); 
+            handleJenisIzinChange(); // Sembunyikan lagi input file setelah reset
             tampilkanView('home');
+
         } catch(error) {
             alert(`Error: ${error.message}`);
+        } finally {
+
+            tombolKirimIzin.disabled = false;
+            tombolKirimIzin.textContent = 'Kirim Pengajuan';
         }
     }
+
     function formatWaktuLokal(waktuUTC) {
     if (!waktuUTC) return '-';
     const tanggal = new Date(`1970-01-01T${waktuUTC}Z`);
