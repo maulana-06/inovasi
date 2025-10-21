@@ -85,6 +85,7 @@ document.addEventListener('DOMContentLoaded', function() {
             nipGuruElem.textContent = data.profil.nip_nipppk;
           
             updateUIBerdasarkanStatus(data.status_presensi);
+            await muatPengumuman();
 
         } catch (error) {
             console.error(error);
@@ -286,6 +287,35 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
+    async function muatPengumuman() {
+        const areaPengumuman = document.getElementById('area-pengumuman');
+        const teksPengumuman = document.getElementById('teks-pengumuman');
+        
+        try {
+            const response = await fetch('/api/pengumuman/terbaru', {
+                headers: { 'Authorization': 'Bearer ' + token }
+            });
+            
+            // Kita tidak melempar error jika 404 (tidak ada pengumuman)
+            if (!response.ok) {
+                 areaPengumuman.classList.add('d-none'); // Sembunyikan jika error
+                 return; 
+            }
+            
+            const data = await response.json();
+            
+            // Cek jika ada isi pengumuman dan tidak kosong
+            if (data && data.isi_pengumuman && data.isi_pengumuman.trim() !== '') {
+                teksPengumuman.textContent = data.isi_pengumuman; // Tampilkan isi
+                areaPengumuman.classList.remove('d-none'); // Tampilkan elemen
+            } else {
+                areaPengumuman.classList.add('d-none'); // Sembunyikan jika tidak ada
+            }
+        } catch (error) {
+            console.warn("Gagal memuat pengumuman:", error);
+            areaPengumuman.classList.add('d-none'); // Sembunyikan jika error
+        }
+    }
     async function kirimFormIzin(event) {
         event.preventDefault();
         const dataIzin = {

@@ -16,10 +16,13 @@
 </head>
 <body>
 <div class="container mt-4">
-    <h2 id="ucapan-selamat" class="mb-4"></h2>
-
     <div class="card">
-        </div>
+    <h2 id="ucapan-selamat" class="mb-4"></h2>
+    </div>
+    <div id="area-pengumuman" class="alert alert-warning p-2 d-none" role="alert" style="font-size: 0.9rem;">
+        <strong class="d-block"><i class="bi bi-megaphone-fill"></i> Pengumuman:</strong>
+        <p id="teks-pengumuman" class="mb-0"></p>
+    </div>
 </div>
 <div class="modal fade" id="cameraModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
@@ -162,15 +165,16 @@
         else if (jam >= 15 && jam < 19) { ucapanWaktu = 'sore'; } 
         else { ucapanWaktu = 'malam'; }
         elemenUcapan.style.fontSize = '16px'; 
-        elemenUcapan.style.color = '#28a745'; // Hijau khas Bootstrap
-        const teksLengkap = `Selamat ${ucapanWaktu}, ${namaPengguna}. Semoga ${ucapanWaktu} ini Anda berbahagia !`;
+        elemenUcapan.style.color = '#28a745'; 
+        elemenUcapan.style.fontWeight = 700; 
+        const teksLengkap = `Assalamualaikum ${namaPengguna}, selamat ${ucapanWaktu} dan semoga selalu berbahagia 🙏..`;
         let index = 0;
 
         function ketikSapaan() {
             if (index < teksLengkap.length) {
                 elemenUcapan.textContent += teksLengkap.charAt(index);
                 index++;
-                setTimeout(ketikSapaan, 100); // Kecepatan ketik (100 milidetik)
+                setTimeout(ketikSapaan, 100); 
             }
         }
         ketikSapaan(); 

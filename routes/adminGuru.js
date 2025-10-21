@@ -116,7 +116,6 @@ router.delete('/:id_guru', [checkAuth, checkAdmin], async (req, res) => {
         connection = await db.getConnection();
         await connection.beginTransaction(); 
 
-        // Hapus semua data terkait terlebih dahulu
         console.log(`Menghapus data presensi untuk guru ID: ${guruId}`);
         await connection.execute('DELETE FROM presensi WHERE id_guru = ?', [guruId]);
 
@@ -124,12 +123,9 @@ router.delete('/:id_guru', [checkAuth, checkAdmin], async (req, res) => {
         await connection.execute('DELETE FROM izin_sakit_tugas WHERE id_guru = ?', [guruId]);
 
         // =================================================================
-        // PERIKSA DI SINI: Jika ada tabel lain yang berelasi dengan guru,
-        // tambahkan query DELETE untuk tabel tersebut di sini.
-        // Contoh: await connection.execute('DELETE FROM jadwal_mengajar WHERE id_guru = ?', [guruId]);
-        // =================================================================
-
+        // Delete Tabel lain yang berelasi dengan tabel guru,
         // Setelah semua data terkait bersih, hapus data induk (guru)
+        // =================================================================
         console.log(`Menghapus data utama guru ID: ${guruId}`);
         const [result] = await connection.execute('DELETE FROM guru WHERE id_guru = ?', [guruId]);
 
@@ -146,15 +142,13 @@ router.delete('/:id_guru', [checkAuth, checkAdmin], async (req, res) => {
         if (connection) await connection.rollback();
 
         // =================================================================
-        // PERBAIKAN UTAMA ADA DI SINI: Error handling yang lebih spesifik
+        // Perbaikan Error handling yang lebih spesifik
         // =================================================================
-        // Cek spesifik untuk error foreign key constraint (kode error umum untuk MySQL)
         if (error.code === 'ER_ROW_IS_REFERENCED_2') {
             return res.status(409).json({ 
                 message: 'Gagal menghapus. Data guru ini masih terpakai di data lain (misalnya jadwal mengajar, data wali kelas, dll.) dan tidak dapat dihapus.' 
             });
         }
-        
         // Pesan error default jika bukan karena foreign key
         res.status(500).json({ message: 'Gagal menghapus data guru karena kesalahan server.' }); 
 

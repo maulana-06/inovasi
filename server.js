@@ -12,7 +12,7 @@ app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.use(express.static('public'));
 
 // =============================================================
-// MENGHUBUNGKAN RUTE API YANG SUDAH KITA BUAT
+// MENGHUBUNGKAN RUTE API YANG SUDAH DIBUAT
 // =============================================================
 const authRoutes = require('./routes/auth');
 const guruRoutes = require('./routes/guru');
@@ -23,6 +23,7 @@ const dashboardRoutes = require('./routes/dashboard');
 const adminIzinRoutes = require('./routes/adminIzin');
 const laporanRoutes = require('./routes/laporan');
 const pengaturanRoutes = require('./routes/pengaturan');
+const pengumumanRoutes = require('./routes/pengumuman');
 
 // Daftarkan rute-rute tersebut
 app.use('/api/auth', authRoutes);
@@ -34,6 +35,7 @@ app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/admin/izin', adminIzinRoutes);
 app.use('/api/laporan', laporanRoutes);
 app.use('/api/pengaturan', pengaturanRoutes);
+app.use('/api/pengumuman', pengumumanRoutes);
 
 // =============================================================
 // MENJALANKAN SERVER
