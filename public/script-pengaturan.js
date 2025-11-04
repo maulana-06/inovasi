@@ -1,33 +1,46 @@
-// File: /public/script-pengaturan.js
+// File: /public/script-pengaturan.js (VERSI PERBAIKAN FINAL)
 
 document.addEventListener('DOMContentLoaded', function() {
-    // Referensi ke elemen form
+    // Referensi ke elemen form (Gunakan ID yang konsisten)
     const form = document.getElementById('form-pengaturan');
-    const inputLat = document.getElementById('school_lat');
-    const inputLon = document.getElementById('school_lon');
+    const inputLatitude = document.getElementById('latitude');
+    const inputLongitude = document.getElementById('longitude');    
+    const inputJamMasuk = document.getElementById('jam_masuk');
+    const inputJamPulang = document.getElementById('jam_pulang');
     const inputRadius = document.getElementById('radius_meter');
-    const inputBatasJam = document.getElementById('batas_jam_masuk');
+    const tombolSimpan = form.querySelector('button[type="submit"]'); // Dapatkan tombol submit
     const token = localStorage.getItem('token');
 
     // =================================================================
     // BAGIAN A: Mengambil dan Menampilkan Pengaturan Saat Ini
     // =================================================================
     async function muatPengaturan() {
+        console.log("Mencoba memuat pengaturan..."); 
+        if (!token) {
+            alert("Token tidak ditemukan, silakan login ulang.");
+            return;
+        }
         try {
-            const response = await fetch('/api/pengaturan', {
+            const response = await fetch('/api/pengaturan', { 
                 headers: { 'Authorization': 'Bearer ' + token }
             });
-            if (!response.ok) throw new Error('Gagal memuat data pengaturan.');
+            if (!response.ok) {
+                 const errorData = await response.json(); 
+                throw new Error(errorData.message || 'Gagal memuat data pengaturan.');
+            }
             
             const settings = await response.json();
+            console.log("Pengaturan diterima:", settings); 
             
-            // Isi nilai form dengan data dari server
-            inputLat.value = settings.school_lat;
-            inputLon.value = settings.school_lon;
-            inputRadius.value = settings.radius_meter;
-            inputBatasJam.value = settings.batas_jam_masuk;
+            if (inputLatitude) inputLatitude.value = settings.latitude || ''; 
+            if (inputLongitude) inputLongitude.value = settings.longitude || ''; 
+
+            if (inputJamMasuk) inputJamMasuk.value = settings.jam_masuk || '';
+            if (inputJamPulang) inputJamPulang.value = settings.jam_pulang || '';
+            if (inputRadius) inputRadius.value = settings.radius_meter || '';
 
         } catch (error) {
+            console.error("Error memuat pengaturan:", error); // Tampilkan error di konsol
             alert(`Error: ${error.message}`);
         }
     }
@@ -35,39 +48,63 @@ document.addEventListener('DOMContentLoaded', function() {
     // =================================================================
     // BAGIAN B: Mengirim Perubahan Saat Form Disubmit
     // =================================================================
-    form.addEventListener('submit', async function(event) {
-        event.preventDefault();
+    async function simpanPengaturan(event) {
+        event.preventDefault(); // Mencegah form refresh halaman
+        
+        if (tombolSimpan) {
+            tombolSimpan.disabled = true;
+            tombolSimpan.textContent = 'Menyimpan...';
+        }
 
-        const dataUpdate = {
-            school_lat: inputLat.value,
-            school_lon: inputLon.value,
-            radius_meter: inputRadius.value,
-            batas_jam_masuk: inputBatasJam.value
+        const dataPengaturan = {
+            latitude: inputLatitude.value.trim(), 
+            longitude: inputLongitude.value.trim(), 
+            radius_meter: inputRadius ? inputRadius.value : null,
+            
+            jam_masuk: inputJamMasuk ? inputJamMasuk.value : null,
+            jam_pulang: inputJamPulang ? inputJamPulang.value : null
         };
+        console.log("Mengirim pengaturan:", dataPengaturan); // Debug
 
         try {
-            const response = await fetch('/api/pengaturan', {
+            if (!token) throw new Error("Token tidak ditemukan.");
+
+            const response = await fetch('/api/pengaturan', { // PUT /api/pengaturan
                 method: 'PUT',
                 headers: {
                     'Authorization': 'Bearer ' + token,
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify(dataUpdate)
+                body: JSON.stringify(dataPengaturan)
             });
 
-            if (!response.ok) {
-                const err = await response.json();
-                throw new Error(err.message || 'Gagal menyimpan pengaturan.');
+            const result = await response.json(); 
+
+            if (response.ok) {
+                alert('Pengaturan berhasil disimpan!');
+
+            } else {
+                throw new Error(result.message || `Gagal menyimpan pengaturan (Status: ${response.status})`);
             }
-
-            const hasil = await response.json();
-            alert(hasil.message); // "Pengaturan berhasil diperbarui."
-
         } catch (error) {
+            console.error("Error menyimpan pengaturan:", error); // Tampilkan error di konsol
             alert(`Error: ${error.message}`);
-        }
-    });
+        } finally {
 
-    // Panggil fungsi untuk memuat pengaturan saat halaman dibuka
-    muatPengaturan();
+            if (tombolSimpan) {
+                tombolSimpan.disabled = false;
+                tombolSimpan.textContent = 'Simpan Pengaturan';
+            }
+        }
+    }
+
+    // =================================================================
+    // INISIALISASI: Panggil muatPengaturan & pasang listener
+    // =================================================================
+    if (form) {
+        form.addEventListener('submit', simpanPengaturan); 
+        muatPengaturan();
+    } else {
+        console.error("Form pengaturan '#form-pengaturan' tidak ditemukan!");
+    }
 });

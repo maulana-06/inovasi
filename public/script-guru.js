@@ -1,250 +1,296 @@
-// =================================================================
-// script-guru.js (VERSI FINAL)
-// Logika Frontend untuk Manajemen Guru
-// =================================================================
+// File: public/script-guru.js (BARU)
 
-// =================================================================
-// BAGIAN A: INISIALISASI & FUNGSI UTAMA
-// =================================================================
+const currentUser = JSON.parse(localStorage.getItem('user'));
+const currentUserId = currentUser ? currentUser.userId : null;
 
-// Simpan referensi ke modal Bootstrap untuk digunakan nanti
-const tambahModal = new bootstrap.Modal(document.getElementById('tambahGuruModal'));
-const editModal = new bootstrap.Modal(document.getElementById('editGuruModal'));
-const resetPasswordModal = new bootstrap.Modal(document.getElementById('resetPasswordModal'));
-
-// Titik masuk utama: Panggil fungsi-fungsi ini saat halaman selesai dimuat
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', () => {
     muatDataGuru();
-    setupEventListeners();
+
+    // Listener untuk form tambah guru
+    document.getElementById('form-tambah-guru').addEventListener('submit', tambahGuru);
+    // Listener untuk form edit guru
+    document.getElementById('form-edit-guru').addEventListener('submit', simpanEditGuru);
 });
 
-/**
- * Mengambil data guru dari API dan menampilkannya di tabel.
- */
-async function muatDataGuru() {
-    const tabelBody = document.getElementById('tabel-guru-body');
-    tabelBody.innerHTML = `<tr><td colspan="5" class="text-center text-muted">Memuat data guru...</td></tr>`;
     const token = localStorage.getItem('token');
-    
-    try {
-        const response = await fetch('/api/admin/guru', {
-            headers: { 'Authorization': 'Bearer ' + token }
-        });
-        if (!response.ok) throw new Error('Gagal memuat data guru dari server.');
-        
-        const paraGuru = await response.json();
-        tabelBody.innerHTML = ''; // Kosongkan tabel sebelum diisi
+    const headers = {
+    'Authorization': 'Bearer ' + token,
+    'Content-Type': 'application/json'
+    };
 
-        if (paraGuru.length === 0) {
-            tabelBody.innerHTML = `<tr><td colspan="5" class="text-center text-muted">Belum ada data guru. Silakan tambahkan.</td></tr>`;
-            return;
+// 1. Fungsi: Memuat data guru ke tabel
+async function muatDataGuru() {
+    try {
+        const response = await fetch('/api/admin/guru', { headers });
+        if (!response.ok) {
+            throw new Error('Gagal memuat data guru.');
+        }
+        const gurus = await response.json();
+
+        const tbody = document.getElementById('tabel-guru-body');
+        tbody.innerHTML = ''; 
+
+        gurus.forEach(guru => {
+                    const tr = document.createElement('tr');
+                    
+                    let roleBadge = (guru.role === 'Admin') ? '<span class="badge bg-primary">Admin</span>' : '<span class="badge bg-secondary">Guru</span>';
+
+                    // ================================================
+                    // === PERBARUI TOMBOL AKSI (TAMBAHKAN DETAIL) ===
+                    // ================================================
+                    let aksiButtons = '';
+                    // Tombol Detail (Selalu ada)
+                    aksiButtons += `
+                        <button class="btn btn-info btn-sm me-1" title="Lihat Detail" onclick="tampilkanDetailModal('${guru.id_user}')">
+                            <i class="bi bi-eye-fill"></i> Detail
+                        </button>`;
+
+                    if (guru.id_user === currentUserId) {
+                        // Jika ini akun admin yang sedang login
+                        aksiButtons += `
+                            <button class="btn btn-warning btn-sm me-1" title="Edit Detail Anda" onclick="bukaEditModal('${guru.id_user}')">
+                                <i class="bi bi-pencil-fill"></i> Edit
+                            </button>
+                            <button class="btn btn-danger btn-sm" title="Tidak dapat menghapus akun sendiri" disabled>
+                                <i class="bi bi-trash-fill"></i> Hapus
+                            </button>`;
+                    } else {
+                        // Untuk akun guru lain
+                        aksiButtons += `
+                            <button class="btn btn-warning btn-sm me-1" title="Edit Detail Guru" onclick="bukaEditModal('${guru.id_user}')">
+                                <i class="bi bi-pencil-fill"></i> Edit
+                            </button>
+                            <button class="btn btn-danger btn-sm" title="Hapus Guru" onclick="hapusGuru('${guru.id_user}', '${guru.nama_lengkap}')">
+                                <i class="bi bi-trash-fill"></i> Hapus
+                            </button>`;
+                    }
+                    tr.innerHTML = `
+                        <td>${guru.nama_lengkap}</td>
+                        <td>${guru.email}</td>
+                        <td>${roleBadge}</td> 
+                        <td>
+                            <span class="badge ${guru.status === 'Aktif' ? 'bg-success' : 'bg-danger'}">
+                                ${guru.status}
+                            </span>
+                        </td>
+                        <td class="text-center">
+                            ${aksiButtons} </td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            } catch (error) {
+                console.error(error);
+                alert(error.message);
+            }
+        }
+// 2. Fungsi: Menambah guru baru
+async function tambahGuru(event) {
+    event.preventDefault();
+    // Ambil SEMUA data dari form
+    const data = {
+        // Data tabel_user
+        nama_lengkap: document.getElementById('tambah-nama').value,
+        email: document.getElementById('tambah-email').value,
+        password: document.getElementById('tambah-password').value,
+        status: document.getElementById('tambah-status').value,
+        // Data tabel_guru
+        nip_nipppk: document.getElementById('tambah-nip').value || null, // Kirim null jika kosong
+        jabatan: document.getElementById('tambah-jabatan').value || null,
+        pendidikan: document.getElementById('tambah-pendidikan').value || null,
+        mulai_tugas: document.getElementById('tambah-mulai-tugas').value || null,
+        alamat: document.getElementById('tambah-alamat').value || null,
+        status_keluarga: document.getElementById('tambah-status-keluarga').value || null,
+        nomor_telepon: document.getElementById('tambah-telepon').value || null
+    };
+
+    try {
+        const response = await fetch('/api/admin/guru', { 
+            method: 'POST',
+            headers,
+            body: JSON.stringify(data) // Kirim semua data
+        });
+        
+        const result = await response.json();
+        if (!response.ok) {
+            throw new Error(result.message || 'Gagal menambah guru.');
         }
 
-        paraGuru.forEach(guru => {
-            const statusBadge = guru.status === 'Tidak Aktif' 
-                ? `<span class="badge bg-success">${guru.status}</span>`
-                : `<span class="badge bg-secondary">${guru.status}</span>`;
-            
-            const baris = `
-                <tr id="baris-guru-${guru.id_guru}">
-                    <td>${guru.nama_lengkap}</td>
-                    <td>${guru.nip_nipppk}</td>
-                    <td>${guru.jabatan}</td>
-                    <td>${statusBadge}</td>
-                    <td>
-                        <button class="btn btn-info btn-sm edit-guru-btn" data-id="${guru.id_guru}"><i class="bi bi-pencil-square"></i> Edit</button>
-                        <button class="btn btn-danger btn-sm hapus-guru-btn" data-id="${guru.id_guru}" data-nama="${guru.nama_lengkap}"><i class="bi bi-trash-fill"></i> Hapus</button>
-                        <button class="btn btn-warning btn-sm reset-guru-btn" data-id="${guru.id_guru}" data-nama="${guru.nama_lengkap}">Reset Password</button>
-                    </td>
-                </tr>
-            `;
-            tabelBody.innerHTML += baris;
-        });
+        alert('Guru baru berhasil ditambahkan!');
+        muatDataGuru(); 
+        bootstrap.Modal.getInstance(document.getElementById('tambahGuruModal')).hide();
+        document.getElementById('form-tambah-guru').reset();
+
     } catch (error) {
-        tabelBody.innerHTML = `<tr><td colspan="5" class="text-center text-danger">Error: ${error.message}</td></tr>`;
+        console.error(error);
+        alert(error.message);
     }
 }
 
-// =================================================================
-// BAGIAN B: PENGATURAN SEMUA EVENT LISTENERS
-// =================================================================
-
-/**
- * Mengatur semua event listener untuk form dan tombol-tombol dinamis.
- */
-function setupEventListeners() {
-    
-    // Listener untuk tombol-tombol di dalam tabel (Edit, Hapus, Reset)
-    document.getElementById('tabel-guru-body').addEventListener('click', function(event) {
-        const tombol = event.target.closest('button'); // Dapatkan elemen tombol, bahkan jika ikon yang diklik
-        if (!tombol) return;
-
-        const id = tombol.dataset.id;
-        const nama = tombol.dataset.nama;
-
-        if (tombol.classList.contains('edit-guru-btn')) {
-            bukaFormEdit(id);
-        } else if (tombol.classList.contains('hapus-guru-btn')) {
-            HapusGuru(id, nama, tombol);
-        } else if (tombol.classList.contains('reset-guru-btn')) {
-            bukaFormReset(id, nama);
-        }
-    });
-
-    // Listener untuk form TAMBAH guru
-    document.getElementById('form-tambah-guru').addEventListener('submit', async function(event) {
-        event.preventDefault();
-        const dataGuruBaru = {
-            nama_lengkap: document.getElementById('tambah-nama').value,
-            nip_nipppk: document.getElementById('tambah-nip').value,
-            jabatan: document.getElementById('tambah-jabatan').value,
-            email: document.getElementById('tambah-email').value,
-            password: document.getElementById('tambah-password').value
-        };
-        try {
-            const token = localStorage.getItem('token');
-            const response = await fetch('/api/admin/guru', {
-                method: 'POST',
-                headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
-                body: JSON.stringify(dataGuruBaru)
-            });
-            const hasil = await response.json();
-            if (!response.ok) throw new Error(hasil.message);
-            
-            alert(hasil.message);
-            this.reset();
-            tambahModal.hide();
-            muatDataGuru(); // Muat ulang data setelah berhasil
-        } catch (error) {
-            alert(`Error: ${error.message}`);
-        }
-    });
-
-    // Listener untuk form EDIT guru
-    document.getElementById('form-edit-guru').addEventListener('submit', async function(event) {
-        event.preventDefault();
-        const id = document.getElementById('edit-id-guru').value;
-        const dataUpdate = {
-            nama_lengkap: document.getElementById('edit-nama').value,
-            nip_nipppk: document.getElementById('edit-nip').value,
-            jabatan: document.getElementById('edit-jabatan').value,
-            email: document.getElementById('edit-email').value,
-        };
-        try {
-            const token = localStorage.getItem('token');
-            const response = await fetch(`/api/admin/guru/${id}`, {
-                method: 'PUT',
-                headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
-                body: JSON.stringify(dataUpdate)
-            });
-            const hasil = await response.json();
-            if (!response.ok) throw new Error(hasil.message);
-
-            alert(hasil.message);
-            editModal.hide();
-            muatDataGuru(); // Muat ulang data setelah berhasil
-        } catch (error) {
-            alert(`Error: ${error.message}`);
-        }
-    });
-
-    // Listener untuk form RESET PASSWORD
-    document.getElementById('form-reset-password').addEventListener('submit', async function(event) {
-        event.preventDefault();
-        const id = document.getElementById('reset-id-guru').value;
-        const password_baru = document.getElementById('password-baru-input').value;
-        
-        if (!confirm(`Anda yakin ingin mereset password untuk guru ini?`)) return;
-
-        try {
-            const token = localStorage.getItem('token');
-            const response = await fetch(`/api/admin/guru/${id}/reset-password`, {
-                method: 'POST',
-                headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
-                body: JSON.stringify({ password_baru: password_baru })
-            });
-            const hasil = await response.json();
-            if (!response.ok) throw new Error(hasil.message);
-            
-            alert(hasil.message);
-            resetPasswordModal.hide();
-            this.reset();
-        } catch(error) {
-            alert(`Error: ${error.message}`);
-        }
-    });
-}
-
-// =================================================================
-// BAGIAN C: FUNGSI-FUNGSI HANDLER (Aksi untuk setiap tombol)
-// =================================================================
-
-/**
- * Membuka modal Edit dan mengisi form dengan data guru yang dipilih.
- * @param {number} id - ID guru yang akan diedit.
- */
-async function bukaFormEdit(id) {
+// ================================================
+// === FUNGSI BARU UNTUK MENAMPILKAN MODAL DETAIL ===
+// ================================================
+async function tampilkanDetailModal(id_user) {
     try {
-        const token = localStorage.getItem('token');
-        const response = await fetch(`/api/admin/guru/${id}`, {
-            headers: { 'Authorization': 'Bearer ' + token }
+        // Tampilkan loading di modal (opsional)
+        document.getElementById('detail-nama').textContent = "Memuat...";
+        // Kosongkan field lain
+        ['email', 'role', 'status', 'telepon', 'alamat', 'nip/nipppk', 'jabatan', 'pendidikan', 'mulai-tugas', 'status_keluarga'].forEach(id => {
+            const elem = document.getElementById(`detail-${id}`);
+            if(elem) elem.textContent = '-';
         });
-        if (!response.ok) throw new Error('Gagal mengambil detail guru.');
-        const guru = await response.json();
-        
-        document.getElementById('edit-id-guru').value = guru.id_guru;
-        document.getElementById('edit-nama').value = guru.nama_lengkap;
-        document.getElementById('edit-nip').value = guru.nip_nipppk;
-        document.getElementById('edit-jabatan').value = guru.jabatan;
-        document.getElementById('edit-email').value = guru.email;
 
-        editModal.show();
+        // Tampilkan modalnya dulu sebelum fetch
+        const detailModal = new bootstrap.Modal(document.getElementById('detailGuruModal'));
+        detailModal.show();
+
+        // 1. Ambil data detail guru dari backend (ENDPOINT YANG SAMA DENGAN EDIT)
+        const response = await fetch(`/api/admin/guru/${id_user}`, { headers }); // -> GET /:id_user
+        if (!response.ok) {
+            throw new Error('Gagal mengambil detail guru.');
+        }
+        const guru = await response.json(); // Data lengkap dari JOIN
+
+        // 2. Isi semua elemen dd di modal detail dengan data yang didapat
+        document.getElementById('detail-nama').textContent = guru.nama_lengkap || '-';
+        document.getElementById('detail-email').textContent = guru.email || '-';
+        document.getElementById('detail-role').textContent = guru.role || '-'; // Backend GET /:id_user perlu kirim role
+        document.getElementById('detail-status').textContent = guru.status || '-';
+        document.getElementById('detail-telepon').textContent = guru.nomor_telepon || '-';
+        document.getElementById('detail-alamat').textContent = guru.alamat || '-';
+        document.getElementById('detail-nip').textContent = guru.nip_nipppk || '-';
+        document.getElementById('detail-jabatan').textContent = guru.jabatan || '-';
+        document.getElementById('detail-pendidikan').textContent = guru.pendidikan || '-';
+        document.getElementById('detail-mulai-tugas').textContent = guru.mulai_tugas ? new Date(guru.mulai_tugas).toLocaleDateString('id-ID') : '-';
+        document.getElementById('detail-status-keluarga').textContent = guru.status_keluarga || '-';
+
     } catch (error) {
+        console.error("Error menampilkan detail guru:", error);
+        // Tampilkan pesan error di modal jika gagal
+        document.getElementById('detail-nama').textContent = "Error memuat data.";
+        alert(error.message); 
+    }
+}
+// ================================================
+// == FUNGSI Simpan Edit Guru (Diperbarui) ==
+// ================================================
+async function simpanEditGuru(event) {
+    event.preventDefault();
+    const id_user = document.getElementById('edit-id-user').value;
+    // Ambil SEMUA data dari form
+    const data = {
+        // Data tabel_user
+        nama_lengkap: document.getElementById('edit-nama').value,
+        email: document.getElementById('edit-email').value,
+        status: document.getElementById('edit-status').value,
+        // Data tabel_guru
+        nip_nipppk: document.getElementById('edit-nip').value || null,
+        jabatan: document.getElementById('edit-jabatan').value || null,
+        pendidikan: document.getElementById('edit-pendidikan').value || null,
+        mulai_tugas: document.getElementById('edit-mulai-tugas').value || null,
+        alamat: document.getElementById('edit-alamat').value || null,
+        status_keluarga: document.getElementById('edit-status-keluarga').value || null,
+        nomor_telepon: document.getElementById('edit-telepon').value || null
+    };
+
+    try {
+        const response = await fetch(`/api/admin/guru/${id_user}`, { 
+            method: 'PUT',
+            headers,
+            body: JSON.stringify(data) // Kirim semua data
+        });
+        
+        const result = await response.json();
+        if (!response.ok) {
+            throw new Error(result.message || 'Gagal mengupdate guru.');
+        }
+
+        alert(result.message);
+        muatDataGuru(); // Muat ulang tabel
+        bootstrap.Modal.getInstance(document.getElementById('editGuruModal')).hide();
+
+    } catch (error) {
+        console.error(error);
+        alert(error.message);
+    }
+}
+async function bukaEditModal(id_user) { 
+    console.log(`[bukaEditModal] Dipanggil untuk id_user: ${id_user}`); 
+    try {
+        const modalElement = document.getElementById('editGuruModal');
+        if (!modalElement) throw new Error("Modal 'editGuruModal' tidak ditemukan!");
+        // Tampilkan loading di form (opsional)
+        document.getElementById('edit-nama').value = "Memuat..."; 
+        // 1. Ambil data detail guru dari backend
+        console.log(`[bukaEditModal] Fetching data for user ${id_user}...`); 
+        const response = await fetch(`/api/admin/guru/${id_user}`, { headers }); 
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({})); // Tangkap jika JSON parse gagal
+            throw new Error(errorData.message || `Gagal mengambil detail guru (${response.status}).`);
+        }
+        const guru = await response.json(); 
+        console.log("[bukaEditModal] Data diterima:", guru); 
+
+        // 2. Isi form modal edit 
+        console.log("[bukaEditModal] Mengisi form..."); 
+        document.getElementById('edit-id-user').value = id_user;
+        document.getElementById('edit-nama').value = guru.nama_lengkap || '';
+        document.getElementById('edit-email').value = guru.email || '';
+        document.getElementById('edit-status').value = guru.status || 'Aktif';
+        document.getElementById('edit-nip').value = guru.nip_nipppk || '';
+        document.getElementById('edit-jabatan').value = guru.jabatan || '';
+        document.getElementById('edit-pendidikan').value = guru.pendidikan || '';
+        // Format tanggal YYYY-MM-DD untuk input type="date"
+        document.getElementById('edit-mulai-tugas').value = guru.mulai_tugas ? guru.mulai_tugas.split('T')[0] : ''; 
+        document.getElementById('edit-alamat').value = guru.alamat || '';
+        document.getElementById('edit-status-keluarga').value = guru.status_keluarga || '';
+        document.getElementById('edit-telepon').value = guru.nomor_telepon || '';
+        console.log("[bukaEditModal] Form terisi."); 
+
+        // 3. Tampilkan modal
+        console.log("[bukaEditModal] Menampilkan modal..."); 
+        if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+            // Dapatkan instance modal yang sudah ada ATAU buat baru
+            let editModal = bootstrap.Modal.getInstance(modalElement);
+            if (!editModal) {
+                editModal = new bootstrap.Modal(modalElement);
+            }
+            editModal.show();
+            console.log("[bukaEditModal] Modal seharusnya tampil."); 
+        } else {
+             console.error("[bukaEditModal] bootstrap.Modal tidak ditemukan!");
+             alert("Error: Komponen modal tidak dapat dimuat.");
+        }
+
+    } catch (error) {
+        console.error("Error membuka modal edit:", error);
         alert(`Error: ${error.message}`);
     }
 }
+// ================================================
+// === FUNGSI BARU UNTUK HAPUS GURU ===
+// ================================================
+async function hapusGuru(id_user, nama_lengkap) {
+    // Tampilkan konfirmasi
+    if (!confirm(`Apakah Anda yakin ingin menghapus guru "${nama_lengkap}" secara permanen? Tindakan ini tidak dapat dibatalkan.`)) {
+        return; // Batalkan jika pengguna menekan Cancel
+    }
 
-/**
- * Membuka modal untuk mereset password.
- * @param {number} id - ID guru.
- * @param {string} nama - Nama lengkap guru untuk ditampilkan di modal.
- */
-function bukaFormReset(id, nama) {
-    document.getElementById('reset-id-guru').value = id;
-    document.getElementById('nama-guru-reset').textContent = nama;
-    document.getElementById('form-reset-password').reset();
-    resetPasswordModal.show();
-}
-
-/**
- * Memproses penghapusan data guru secara permanen.
- * @param {number} id - ID guru yang akan dihapus.
- * @param {string} nama - Nama guru untuk konfirmasi.
- * @param {HTMLElement} elementTombol - Referensi ke tombol yang diklik.
- */
-async function HapusGuru(id, nama, elementTombol) {
-    const konfirmasi = confirm(
-        `PERINGATAN!\n\nAnda akan menghapus data guru "${nama}" secara permanen. Semua data presensi dan izin terkait juga akan terhapus.\n\nApakah Anda yakin? Tindakan ini tidak dapat dibatalkan.`
-    );
-    if (!konfirmasi) return;
-
-    const token = localStorage.getItem('token');
     try {
-        elementTombol.disabled = true;
-        elementTombol.innerHTML = '<i class="bi bi-hourglass-split"></i>'; // Ganti ikon saat proses
-
-        const response = await fetch(`/api/admin/guru/${id}`, {
+        const response = await fetch(`/api/admin/guru/${id_user}`, { 
             method: 'DELETE',
-            headers: { 'Authorization': 'Bearer ' + token }
+            headers: headers // Gunakan headers global yang sudah ada token
         });
-        const data = await response.json();
-        if (!response.ok) throw new Error(data.message);
 
-        alert(data.message);
-        document.getElementById(`baris-guru-${id}`).remove(); // Hapus baris dari tabel
+        const result = await response.json();
+        if (!response.ok) {
+            throw new Error(result.message || 'Gagal menghapus guru.');
+        }
+
+        alert(result.message); // Tampilkan pesan sukses dari backend
+        muatDataGuru(); // Muat ulang tabel untuk menghapus baris guru
+
     } catch (error) {
-        alert(`Gagal menghapus: ${error.message}`);
-        elementTombol.disabled = false;
-        elementTombol.innerHTML = '<i class="bi bi-trash-fill"></i> Hapus'; // Kembalikan seperti semula jika gagal
+        console.error("Error menghapus guru:", error);
+        alert(`Error: ${error.message}`);
     }
 }

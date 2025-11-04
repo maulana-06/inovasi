@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daftarkan Sekolah Anda</title>
+    <style>
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
+            margin: 0; padding: 0; background-color: #f4f7f6; 
+            display: flex; justify-content: center; align-items: center; min-height: 100vh;
+        }
+        .container { 
+            background: #fff; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); 
+            padding: 2.5rem; max-width: 500px; width: 100%;
+        }
+        h1 { text-align: center; color: #333; margin-top: 0; }
+        .form-group { margin-bottom: 1.25rem; }
+        .form-group label { display: block; margin-bottom: 0.5rem; font-weight: 600; color: #555; }
+        .form-group input { 
+            width: 100%; padding: 0.75rem; border: 1px solid #ddd; 
+            border-radius: 4px; box-sizing: border-box; 
+        }
+        .subdomain-group { display: flex; align-items: center; }
+        .subdomain-group input { border-top-right-radius: 0; border-bottom-right-radius: 0; }
+        .subdomain-group span { 
+            padding: 0.75rem; background: #eee; border: 1px solid #ddd; border-left: 0;
+            border-top-right-radius: 4px; border-bottom-right-radius: 4px; color: #777;
+        }
+        .btn { 
+            width: 100%; padding: 0.85rem; background-color: #007bff; color: white; 
+            border: none; border-radius: 4px; font-size: 1rem; font-weight: 600; cursor: pointer;
+        }
+        .btn:hover { background-color: #0056b3; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Daftarkan Sekolah Anda</h1>
+        
+        <form action="/daftar" method="POST">
+            
+            <div class="form-group">
+                <label for="nama_sekolah">Nama Sekolah</label>
+                <input type="text" id="nama_sekolah" name="nama_sekolah" required>
+            </div>
+            <div class="form-group">
+                <label for="npsn">NPSN</label>
+                <input type="text" id="npsn" name="npsn" minlength="8" maxlength="8" required>
+            </div>
+            <div class="form-group">
+                <label for="subdomain">Alamat Web Presensi</label>
+                <div class="subdomain-group">
+                    <input type="text" id="subdomain" name="subdomain" placeholder="cth: sdn27 " required>
+                    <span>.presensi-online</span>
+                </div>
+            </div>
+
+            <hr style="border: 0; border-top: 1px solid #eee; margin: 2rem 0;">
+
+            <div class="form-group">
+                <label for="nama_admin">Nama Lengkap Admin</label>
+                <input type="text" id="nama_admin" name="nama_admin" required>
+            </div>
+            <div class="form-group">
+                <label for="email_admin">Email Admin (untuk Login)</label>
+                <input type="email" id="email_admin" name="email_admin" required>
+            </div>
+            <div class="form-group">
+                <label for="password_admin">Password</label>
+                <input type="password" id="password_admin" name="password_admin" minlength="8" required>
+            </div>
+            
+            <button type="submit" class="btn">Buat Akun Sekolah</button>
+        </form>
+    </div>
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+    const namaLengkapInput = document.getElementById('nama_lengkap');
+    const subdomainInput = document.getElementById('subdomain');
+    const usernameBakuTampilan = document.getElementById('username_baku_tampilan');
+    
+    // Kata kunci yang menjadi pemisah/penghubung
+    const adminKeyword = 'Admin'; 
+
+    function updateUsernameBaku() {
+        // Ambil nilai dan bersihkan (trim)
+        const nama = namaLengkapInput.value.trim().toUpperCase(); // Opsional: Dibuat Kapital
+        const subdomain = subdomainInput.value.trim().toLowerCase();
+
+        if (nama && subdomain) {
+            // Gabungkan: DANU Admin smpn-110
+            const finalDisplay = `${nama} ${adminKeyword} ${subdomain}`;
+            usernameBakuTampilan.value = finalDisplay;
+        } else {
+            // Tampilan default jika belum diisi
+            usernameBakuTampilan.value = 'Nama + Admin + Subdomain';
+        }
+    }
+
+    // Tambahkan event listener pada kedua input
+    namaLengkapInput.addEventListener('input', updateUsernameBaku);
+    subdomainInput.addEventListener('input', updateUsernameBaku);
+
+    // Panggil saat dimuat
+    updateUsernameBaku();
+});
+</script>
+</body>
+</html>

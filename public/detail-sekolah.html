@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Detail Sekolah - Super Admin</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <style>
+        .card-header { font-weight: bold; background-color: #f8f9fa; }
+        .detail-value { font-weight: 500; }
+        .nav-link.active { font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="container mt-4 mb-5">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h3 id="judul-detail"><i class="bi bi-building-fill me-2"></i>Memuat Detail Sekolah...</h3>
+            <a href="super-admin-schools.html" class="btn btn-secondary"><i class="bi bi-arrow-left"></i> Kembali ke Daftar</a>
+        </div>
+
+        <div class="alert alert-danger d-none" id="error-alert"></div>
+
+        <ul class="nav nav-tabs" id="detailTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="info-tab" data-bs-toggle="tab" data-bs-target="#info-sekolah" type="button" role="tab">Informasi Dasar</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="admin-tab" data-bs-toggle="tab" data-bs-target="#data-admin" type="button" role="tab">Admin & Guru</button>
+            </li>
+        </ul>
+
+        <div class="tab-content border border-top-0 p-3 bg-white" id="detailTabsContent">
+            
+            <div class="tab-pane fade show active" id="info-sekolah" role="tabpanel" aria-labelledby="info-tab">
+                <div class="card card-body">
+                    <dl class="row">
+                        <dt class="col-sm-3">ID Sekolah:</dt>
+                        <dd class="col-sm-9 detail-value" id="detail-id"></dd>
+
+                        <dt class="col-sm-3">Nama Sekolah:</dt>
+                        <dd class="col-sm-9 detail-value" id="detail-nama"></dd>
+
+                        <dt class="col-sm-3">Subdomain:</dt>
+                        <dd class="col-sm-9 detail-value" id="detail-subdomain"></dd>
+                        
+                        <dt class="col-sm-3">NPSN:</dt>
+                        <dd class="col-sm-9 detail-value" id="detail-npsn"></dd>
+
+                        <dt class="col-sm-3">Status Aktif:</dt>
+                        <dd class="col-sm-9 detail-value" id="detail-status"></dd>
+
+                        <dt class="col-sm-3">Tanggal Terdaftar:</dt>
+                        <dd class="col-sm-9 detail-value" id="detail-tanggal"></dd>
+                    </dl>
+                    <h6 class="mt-3">Pengaturan Lokasi:</h6>
+                    <dl class="row">
+                         <dt class="col-sm-3">Latitude:</dt>
+                        <dd class="col-sm-9 detail-value" id="detail-lat"></dd>
+                         <dt class="col-sm-3">Longitude:</dt>
+                        <dd class="col-sm-9 detail-value" id="detail-lon"></dd>
+                        <dt class="col-sm-3">Radius Presensi:</dt>
+                        <dd class="col-sm-9 detail-value" id="detail-radius"></dd>
+                    </dl>
+                </div>
+            </div>
+
+            <div class="tab-pane fade" id="data-admin" role="tabpanel" aria-labelledby="admin-tab">
+                <div id="data-admin-guru">Memuat data Admin dan Guru...</div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="script-detail-sekolah.js"></script> 
+</body>
+</html>

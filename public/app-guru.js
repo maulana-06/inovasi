@@ -53,7 +53,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     async function init() {
         if (!token) {
-            window.location.href = 'login-guru.html';
+            window.location.href = 'login.html';
             return;
         }
         
@@ -82,21 +82,19 @@ document.addEventListener('DOMContentLoaded', function() {
                 headers: { 'Authorization': 'Bearer ' + token }
             });
             if (!response.ok) throw new Error('Gagal memuat data pengguna.');
-            
             const data = await response.json();
             
             namaGuruElem.textContent = data.profil.nama_lengkap;
-            nipGuruElem.textContent = data.profil.nip_nipppk;
-          
             updateUIBerdasarkanStatus(data.status_presensi);
-            await muatPengumuman();
+    
+    await muatPengumuman();
 
         } catch (error) {
             console.error(error);
             alert(error.message);
             if (error.response && error.response.status === 401) {
                 localStorage.removeItem('token');
-                window.location.href = 'login-guru.html';
+                window.location.href = 'login.html';
             }
         }
     }
@@ -139,9 +137,19 @@ document.addEventListener('DOMContentLoaded', function() {
         });
 
         tabLogout.addEventListener('click', () => {
-            if (confirm('Apakah Anda yakin ingin keluar?')) {
+            if (confirm('Apakah Anda yakin ingin keluar dari Presensi sekolah Anda?')) {
                 localStorage.removeItem('token');
-                window.location.href = 'index.html';
+                localStorage.removeItem('user'); 
+
+                const protocol = window.location.protocol; 
+                const currentHost = window.location.host; 
+                const hostParts = currentHost.split('.');
+                let baseHost = currentHost; 
+                if (hostParts.length > 2) {
+                    baseHost = hostParts.slice(1).join('.'); 
+                }
+                const targetUrl = `${protocol}//${baseHost}/index.html`;
+                window.location.href = targetUrl;
             }
         });
 
@@ -253,12 +261,12 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     function handleJenisIzinChange() {
         if (jenisIzinSelect.value === 'Sakit') {
-            formGrupBukti.classList.remove('d-none'); // Tampilkan
-            filePendukungInput.required = true;       // Jadikan wajib
+            formGrupBukti.classList.remove('d-none'); 
+            filePendukungInput.required = true;       
         } else {
-            formGrupBukti.classList.add('d-none');   // Sembunyikan
-            filePendukungInput.required = false;      // Tidak wajib
-            filePendukungInput.value = null;          // Kosongkan file jika diganti
+            formGrupBukti.classList.add('d-none');   
+            filePendukungInput.required = false;     
+            filePendukungInput.value = null;     
         }
     }
 
@@ -288,15 +296,15 @@ document.addEventListener('DOMContentLoaded', function() {
 
             daftarRiwayat.forEach(item => {
                 const tanggal = new Date(item.tanggal).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'short' });
-                riwayatList.innerHTML += `
-                    <tr>
-                        <td>${tanggal}</td>
-                        <td><span class="badge bg-primary">${formatWaktuLokal(item.jam_masuk) || '-'}</span></td>
-                        <td><span class="badge bg-success">${formatWaktuLokal(item.jam_pulang) || '-'}</span></td>
-                        <td>${item.status_kehadiran}</td> 
-                    </tr>
-                `;
-            });
+                    riwayatList.innerHTML += `
+                            <tr>
+                                <td>${tanggal}</td>
+                                <td><span class="badge bg-primary">${formatWaktuLokal(item.waktu_masuk) || '-'}</span></td>
+                                <td><span class="badge bg-success">${formatWaktuLokal(item.waktu_pulang) || '-'}</span></td>
+                                <td>${item.status_kehadiran}</td> 
+                            </tr>
+                        `;
+                    });
         } catch(error) {
             riwayatList.innerHTML = `<tr><td colspan="4" class="text-center text-danger">Error: ${error.message}</td></tr>`;
         }
@@ -311,7 +319,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 headers: { 'Authorization': 'Bearer ' + token }
             });
             
-            // JIka error 404 (tidak ada pengumuman)
             if (!response.ok) {
                  areaPengumuman.classList.add('d-none'); // Sembunyikan jika error
                  return; 
@@ -319,7 +326,6 @@ document.addEventListener('DOMContentLoaded', function() {
             
             const data = await response.json();
             
-            // Cek jika ada isi pengumuman dan tidak kosong
             if (data && data.isi_pengumuman && data.isi_pengumuman.trim() !== '') {
                 teksPengumuman.textContent = data.isi_pengumuman; // Tampilkan isi
                 areaPengumuman.classList.remove('d-none'); // Tampilkan elemen
@@ -335,7 +341,6 @@ document.addEventListener('DOMContentLoaded', function() {
 async function kirimFormIzin(event) {
         event.preventDefault();
         
-        // Nonaktifkan tombol
         tombolKirimIzin.disabled = true;
         tombolKirimIzin.textContent = 'Mengirim...';
 
@@ -362,7 +367,7 @@ async function kirimFormIzin(event) {
 
         // 3. Masukkan file ke FormData (jika ada)
         if (file_input) {
-            // Nama 'file_pendukung' harus sama dengan di backend (multer)
+
             dataForm.append('file_pendukung', file_input); 
         }
 
@@ -372,8 +377,6 @@ async function kirimFormIzin(event) {
                 method: 'POST',
                 headers: { 
                     'Authorization': 'Bearer ' + token
-                    // 'Content-Type' TIDAK DI-SET. 
-                    // Browser akan otomatis mengaturnya ke 'multipart/form-data'
                 },
                 body: dataForm // Kirim FormData sebagai body
             });
@@ -398,17 +401,11 @@ async function kirimFormIzin(event) {
         }
     }
 
-    function formatWaktuLokal(waktuUTC) {
-    if (!waktuUTC) return '-';
-    const tanggal = new Date(`1970-01-01T${waktuUTC}Z`);
-    // Waktu zona waktu Asia/Jakarta (GMT+7) format 24 jam
-    return tanggal.toLocaleTimeString('id-ID', {
-    timeZone: 'Asia/Jakarta',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-    hour12: false 
-    });
-    };
+function formatWaktuLokal(waktuString) {
+  if (!waktuString) {
+    return '-';
+  }
+  return waktuString.substring(0, 5); // Hasil: "07:30"
+}
     init();
 });

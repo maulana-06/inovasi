@@ -6,120 +6,259 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
 </head>
-
 <body>
-    <div class="modal fade" id="resetPasswordModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Reset Password untuk <span id="nama-guru-reset"></span></h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <form id="form-reset-password">
-                    <input type="hidden" id="reset-id-guru">
-                    <div class="mb-3">
-                        <label for="password-baru-input" class="form-label">Masukkan Password Baru</label>
-                        <input type="password" id="password-baru-input" class="form-control" required>
-                    </div>
-                    <button type="submit" class="btn btn-warning w-100">Reset Password</button>
-                </form>
-            </div>
-        </div>
-    </div>
-    </div>
+    <div class="container mt-4">
         <div class="d-flex justify-content-between align-items-center mb-3">
-            <h3><i class="bi bi-envelope-paper-fill me-2"></i>Manajemen Data Guru</h3>
+            <h3><i class="bi bi-people-fill me-2"></i>Manajemen Data Guru</h3>
             <a href="dashboard_utama.html" class="btn btn-secondary">Kembali ke Dasbor</a>
         </div>
-        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#tambahGuruModal">
+
+        <button class="btn btn-primary mb-3" data-bs-toggle="modal" data-bs-target="#tambahGuruModal">
             <i class="bi bi-plus-circle me-2"></i>Tambah Guru
         </button>
+
         <div class="table-responsive">
-            <table class="table table-striped table-hover">
+            <table class="table table-striped table-hover align-middle">
                 <thead class="table-dark">
                     <tr>
                         <th>Nama Lengkap</th>
-                        <th>NIP/NIPPPK</th>
-                        <th>Jabatan</th>
+                        <th>Email (Untuk Login)</th>
+                        <th>Role</th>
                         <th>Status</th>
-                        <th>Aksi</th>
+                        <th class="text-center">Aksi</th>
                     </tr>
                 </thead>
                 <tbody id="tabel-guru-body">
-                    </tbody>
+                    <tr><td colspan="5" class="text-center text-muted">Memuat data...</td></tr>
+                </tbody>
             </table>
         </div>
     </div>
+
     <div class="modal fade" id="tambahGuruModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Formulir Guru Baru</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <form id="form-tambah-guru">
-                    <div class="mb-3">
-                        <label for="tambah-nama" class="form-label">Nama Lengkap</label>
-                        <input type="text" class="form-control" id="tambah-nama" required>
-                    </div>
-                    <div class="mb-3">
-                        <label for="tambah-nip" class="form-label">NIP/NIPPPK</label>
-                        <input type="text" class="form-control" id="tambah-nip" required>
-                    </div>
-                    <div class="mb-3">
-                        <label for="tambah-jabatan" class="form-label">Jabatan</label>
-                        <input type="text" class="form-control" id="tambah-jabatan">
-                    </div>
-                     <div class="mb-3">
-                        <label for="tambah-email" class="form-label">Email</label>
-                        <input type="email" class="form-control" id="tambah-email" required>
-                    </div>
-                    <div class="mb-3">
-                        <label for="tambah-password" class="form-label">Password Awal</label>
-                        <input type="password" class="form-control" id="tambah-password" required>
-                    </div>
-                    <button type="submit" class="btn btn-primary w-100">Simpan Guru Baru</button>
-                </form>
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Formulir Input Data Guru</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="form-tambah-guru"> 
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="tambah-nama" class="form-label">Nama Lengkap</label>
+                                    <input type="text" class="form-control" id="tambah-nama" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="tambah-email" class="form-label">Email</label>
+                                    <input type="email" class="form-control" id="tambah-email" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="tambah-password" class="form-label">Password Awal</label>
+                                    <input type="password" class="form-control" id="tambah-password" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="tambah-status" class="form-label">Status Akun</label>
+                                    <select id="tambah-status" class="form-select" required>
+                                        <option value="Aktif">Aktif</option>
+                                        <option value="Tidak Aktif">Tidak Aktif</option>
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="tambah-telepon" class="form-label">Nomor Telepon</label>
+                                    <input type="tel" class="form-control" id="tambah-telepon">
+                                </div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="tambah-nip" class="form-label">NIP/NIPPPK</label>
+                                    <input type="text" class="form-control" id="tambah-nip">
+                                </div>
+                                <div class="mb-3">
+                                    <label for="tambah-jabatan" class="form-label">Jabatan</label>
+                                    <input type="text" class="form-control" id="tambah-jabatan">
+                                </div>
+                                <div class="mb-3">
+                                    <label for="tambah-pendidikan" class="form-label">Pendidikan</label>
+                                    <select id="tambah-pendidikan" class="form-select">
+                                        <option value="">-- Pilih --</option>
+                                        <option value="SMA">SMA</option>
+                                        <option value="D3">D3</option>
+                                        <option value="S1">S1</option>
+                                        <option value="S2">S2</option>
+                                        <option value="S3">S3</option>
+                                        <option value="Lainnya">Lainnya</option>
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="tambah-mulai-tugas" class="form-label">Mulai Tugas</label>
+                                    <input type="date" class="form-control" id="tambah-mulai-tugas">
+                                </div>
+                                <div class="mb-3">
+                                    <label for="tambah-status-keluarga" class="form-label">Status Keluarga</label>
+                                    <select id="tambah-status-keluarga" class="form-select">
+                                        <option value="">-- Pilih --</option>
+                                        <option value="Belum Menikah">Belum Menikah</option>
+                                        <option value="Menikah">Menikah</option>
+                                        <option value="Cerai">Cerai</option>
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="tambah-alamat" class="form-label">Alamat</label>
+                                    <textarea class="form-control" id="tambah-alamat" rows="3"></textarea>
+                                </div>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100 mt-3">Simpan Data Guru</button>
+                    </form>
+                </div>
             </div>
         </div>
     </div>
-</div>
-    <div class="modal fade" id="editGuruModal" tabindex="-1">
-        <div class="modal-dialog">
+<div class="modal fade" id="editGuruModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title">Edit Data Guru</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <form id="form-edit-guru">
-                        <input type="hidden" id="edit-id-guru">
-                        <div class="mb-3">
-                            <label for="edit-nama" class="form-label">Nama Lengkap</label>
-                            <input type="text" class="form-control" id="edit-nama" required>
+                    <form id="form-edit-guru"> 
+                        <input type="hidden" id="edit-id-user">
+                        <div class="row">
+<!--                             {/* Kolom Kiri */} -->
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="edit-nama" class="form-label">Nama Lengkap</label>
+                                    <input type="text" class="form-control" id="edit-nama" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="edit-email" class="form-label">Email</label>
+                                    <input type="email" class="form-control" id="edit-email" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="edit-status" class="form-label">Status Akun</label>
+                                    <select id="edit-status" class="form-select" required>
+                                        <option value="Aktif">Aktif</option>
+                                        <option value="Tidak Aktif">Tidak Aktif</option>
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="edit-telepon" class="form-label">Nomor Telepon</label>
+                                    <input type="tel" class="form-control" id="edit-telepon">
+                                </div>
+                            </div>
+<!--                            {/* Kolom Kanan */} -->
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="edit-nip" class="form-label">NIP/NIPPPK</label>
+                                    <input type="text" class="form-control" id="edit-nip">
+                                </div>
+                                <div class="mb-3">
+                                    <label for="edit-jabatan" class="form-label">Jabatan</label>
+                                    <input type="text" class="form-control" id="edit-jabatan">
+                                </div>
+                                <div class="mb-3">
+                                    <label for="edit-pendidikan" class="form-label">Pendidikan</label>
+                                    <select id="edit-pendidikan" class="form-select">
+                                        <option value="">-- Pilih --</option>
+                                        <option value="SMA">SMA</option>
+                                        <option value="D3">D3</option>
+                                        <option value="S1">S1</option>
+                                        <option value="S2">S2</option>
+                                        <option value="S3">S3</option>
+                                        <option value="Lainnya">Lainnya</option>
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="edit-mulai-tugas" class="form-label">Mulai Tugas</label>
+                                    <input type="date" class="form-control" id="edit-mulai-tugas">
+                                </div>
+                                <div class="mb-3">
+                                    <label for="edit-status-keluarga" class="form-label">Status Keluarga</label>
+                                    <select id="edit-status-keluarga" class="form-select">
+                                         <option value="">-- Pilih --</option>
+                                        <option value="Belum Menikah">Belum Menikah</option>
+                                        <option value="Menikah">Menikah</option>
+                                        <option value="Cerai">Cerai</option>
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="edit-alamat" class="form-label">Alamat</label>
+                                    <textarea class="form-control" id="edit-alamat" rows="3"></textarea>
+                                </div>
+                            </div>
                         </div>
-                        <div class="mb-3">
-                            <label for="edit-nip" class="form-label">NIP/NIPPPK</label>
-                            <input type="text" class="form-control" id="edit-nip" required>
-                        </div>
-                        <div class="mb-3">
-                            <label for="edit-jabatan" class="form-label">Jabatan</label>
-                            <input type="text" class="form-control" id="edit-jabatan">
-                        </div>
-                        <div class="mb-3">
-                            <label for="edit-email" class="form-label">Email</label>
-                            <input type="email" class="form-control" id="edit-email" required>
-                        </div>
-                        <button type="submit" class="btn btn-success w-100">Simpan Perubahan</button>
+                        <button type="submit" class="btn btn-success w-100 mt-3">Simpan Perubahan</button>
                     </form>
                 </div>
             </div>
         </div>
     </div>
+<div class="modal fade" id="detailGuruModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-info text-white">
+                    <h5 class="modal-title"><i class="bi bi-person-lines-fill me-2"></i>Detail Data Pegawai</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h5>Informasi Akun</h5>
+                            <dl class="row">
+                                <dt class="col-sm-5">Nama Lengkap:</dt>
+                                <dd class="col-sm-7" id="detail-nama">-</dd>
 
+                                <dt class="col-sm-5">Email:</dt>
+                                <dd class="col-sm-7" id="detail-email">-</dd>
+
+                                <dt class="col-sm-5">Role:</dt>
+                                <dd class="col-sm-7" id="detail-role">-</dd>
+
+                                <dt class="col-sm-5">Status Akun:</dt>
+                                <dd class="col-sm-7" id="detail-status">-</dd>
+                            </dl>
+                            <hr>
+                            <h5>Informasi Kontak</h5>
+                             <dl class="row">
+                                <dt class="col-sm-5">Nomor Telepon:</dt>
+                                <dd class="col-sm-7" id="detail-telepon">-</dd>
+
+                                <dt class="col-sm-5">Alamat:</dt>
+                                <dd class="col-sm-7" id="detail-alamat">-</dd>
+                             </dl>
+                        </div>
+                        <div class="col-md-6">
+                            <h5>Info Tentang Pegawai</h5>
+                            <dl class="row">
+                                <dt class="col-sm-5">NIP/NIPPPK:</dt>
+                                <dd class="col-sm-7" id="detail-nip">-</dd>
+
+                                <dt class="col-sm-5">Jabatan:</dt>
+                                <dd class="col-sm-7" id="detail-jabatan">-</dd>
+
+                                <dt class="col-sm-5">Pendidikan:</dt>
+                                <dd class="col-sm-7" id="detail-pendidikan">-</dd>
+
+                                <dt class="col-sm-5">Mulai Tugas:</dt>
+                                <dd class="col-sm-7" id="detail-mulai-tugas">-</dd>
+
+                                <dt class="col-sm-5">Status Keluarga:</dt>
+                                <dd class="col-sm-7" id="detail-status-keluarga">-</dd>
+                            </dl>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
+                </div>
+            </div>
+        </div>
+    </div>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="script-guru.js"></script>
+    <script src="script-guru.js"></script> 
 </body>
 </html>

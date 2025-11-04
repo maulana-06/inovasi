@@ -3,133 +3,233 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistem Presensi Online</title>
-    <link rel="icon" type="image/png" href="/favicon-96x96.png" sizes="96x96" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <link rel="shortcut icon" href="/favicon.ico" />
-    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
-    <meta name="apple-mobile-web-app-title" content="MyWebSite" />
-    <link rel="manifest" href="manifest.json" />    
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <title>Selamat Datang di Aplikasi Presensi Online</title>
     <style>
-        body, html {
-            height: 100%;
-        }
-        .bg-halaman-utama {
-            background-image: linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)), url('gempala-sdn27.jpeg?q=80&w=2132&auto=format&fit=crop');
-            height: 100%;
-            background-position: center;
-            background-repeat: no-repeat;
-            background-size: cover;
-            color:whitesmoke; 
 
+    body, html {
+            height: 100%; margin: 0; padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: #f4f7f6; 
+            color: #333; 
         }
-        .konten-tengah {
-            color:cyan; 
+        
+        .navbar {
+            background: #1e3a8a; 
+            padding: 1rem 2rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
             display: flex;
-            flex-direction: column;
-            justify-content: center;
+            justify-content: space-between;
             align-items: center;
-            height: 100%;
-            text-align: center;
         }
-        .card-body {
-            color:gray;
-            font-size: 1em; 
+        .navbar .logo-container {
             display: flex;
             flex-direction: column;
-            justify-content: center;
-            opacity: 0.3; 
+        }
+        .navbar .logo {
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: #fff; /* Logo putih */
+            text-decoration: none;
+        }
+        .super-admin-link {
+            font-size: 0.75rem;
+            color: #ccc; 
+            text-decoration: none;
+            margin-top: 2px;
+            transition: color 0.2s;
+        }
+        .super-admin-link:hover {
+            color: #fff;
+        }
+
+        .navbar .nav-links a {
+            margin-left: 1rem;
+            padding: 0.5rem 1rem;
+            text-decoration: none;
+            border-radius: 4px;
+            font-weight: 600;
+            transition: background-color 0.2s, color 0.2s;
+        }
+        .login-btn {
+            background-color: #3b82f6; /* Biru primer */
+            color: white;
+        }
+        .login-btn:hover {
+            background-color: #2563eb;
+        }
+        .register-btn {
+            background-color: #10b981; /* Hijau sekunder */
+            color: white;
+        }
+        .register-btn:hover {
+            background-color: #059669;
+        }
+        
+        .hero {
             text-align: center;
-            height: 100%;
+            padding: 6rem 1rem;
+            max-width: 800px;
+            margin: 0 auto;
         }
-        .smaller-h1 {
-        font-size: 1.6em; 
-        color:gold; 
+        .hero h1 {
+            font-size: 3rem;
+            color: #1e3a8a;
+            margin-bottom: 0.5rem;
         }
-        .btn-custom {
-            padding: 10px 30px;
-            font-size: 1.2em;
-            margin: 10px;
+        .hero p {
+            font-size: 1.25rem;
+            color: #555;
+            margin-bottom: 2rem;
         }
-        .marquee-container {
+        
+        .subdomain-finder {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 2rem;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.05);
+            border-radius: 8px;
+            overflow: hidden; /* Penting untuk input dan tombol */
+        }
+        .subdomain-finder input {
+            flex-grow: 1;
+            padding: 1rem 1.5rem;
+            border: 1px solid #ddd;
+            border-right: none;
+            font-size: 1rem;
+            outline: none;
+        }
+        .subdomain-finder button {
+            padding: 1rem 2rem;
+            background-color: #ef4444; /* Merah untuk CTA */
+            color: white;
+            border: none;
+            font-weight: 700;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .subdomain-finder button:hover {
+            background-color: #dc2626;
+        }
+        
+        .footer {
+            text-align: center;
+            padding: 1rem;
+            color: #777;
+            font-size: 0.9rem;
+            position: fixed;
+            bottom: 0;
             width: 100%;
-            overflow: hidden;
-            padding: 10px 0;
-        }
-        .marquee-text {
-            opacity:0.8;
-            color:gold;
-            font-size: 18px;
-            font-weight: bold;
-            font-family: sans-serif;
-            white-space: nowrap;
-            display: inline-block;
-            animation-play-state: paused;
-        }
-        .marquee-text.scrolling {
-            padding-left:30%;
-            animation: scroll-left 5s linear;
-            animation-play-state: running; 
-        }
-        .marquee-container:hover .scrolling {
-            animation-play-state: paused;
-        }
-        @keyframes scroll-left {
-            100% {
-            transform: translateX(0);
-            }
-            40% {
-            transform: translateX(-60%);
-            }
+            background: #fff;
+            border-top: 1px solid #eee;
         }
     </style>
 </head>
 <body>
-
-    <div class="bg-halaman-utama">
-        <div class="container konten-tengah">
-            <p><h4 class="display-4 fw-bold">Sistem Presensi Online</h4>
-               <a href="info-sdn27.html" class="smaller-h1" Style="text-decoration: none;">
-                    <i class="lead my-4 fw-bold"></i>SEKOLAH DASAR NEGERI 27 KOTA BENGKULU</a></p>
-            <div class="mt-4">
-                <a href="login-admin.html" class="btn btn-primary btn-custom">
-                    <i class="bi bi-person-gear me-2"></i>Login Admin
-                </a>
-                <a href="login-guru.html" class="btn btn-light btn-custom">
-                    <i class="bi bi-person-fill me-2"></i>Login Guru
-                </a>
-            </div>
-<!--                           <div><h4 class="marquee-text">
-                                Selamat Datang</h4> 
-                            </div> -->
-                    <div class="card-body">
-                    <div class="card bg-cyan mt-0" style="max-width: 800px;">
-Aplikasi Presensi Online ini dikembangkan sebagai inovasi sekolah dalam menangani kehadiran guru & staf. Dengan ini diharapkan dapat memudahkan melakukan presensi harian. Terima kasih, semoga bermanfaat.<p>Hormat kami @ Zulfikri, S.Pd</p>
-                </div>
-                </div>
-            </div>
+    <nav class="navbar">
+        <div class="logo-container">
+            <a href="/" class="logo">PresensiOnline</a>
+            <a href="super-login.html" id="super-admin-link" class="super-admin-link">Login Super Admin</a>
+        </div>        
+        <div class="nav-links">
+            <a href="/daftar.html" class="register-btn">Daftarkan Sekolah</a>
         </div>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-<!--  <script>
-  const marqueeText = document.querySelector('.marquee-text');
-  let loopCount = 0;
-  const maxLoops = 2;
-  function startAnimation() {
-    marqueeText.classList.add('scrolling');
-  }
-  marqueeText.addEventListener('animationend', () => {
-    loopCount++;
-    if (loopCount >= maxLoops) {
-      marqueeText.classList.remove('scrolling');
-    } else {
-      marqueeText.classList.remove('scrolling');
-      void marqueeText.offsetWidth; 
-      marqueeText.classList.add('scrolling');
-    }
-  });
-  startAnimation();
-</script> -->
+    </nav>
+
+    <main class="hero">
+        <h1>Sistem Presensi Online Inovasi Sekolah</h1>
+        <p>Akses cepat dan mudah ke dasbor sekolah Anda. Masukkan subdomain untuk masuk.</p>
+        
+        <form class="subdomain-finder" id="subdomain-form">
+            <input type="text" id="subdomain-input" placeholder="Subdomain Sekolah (contoh: sdn27 )">
+            <button type="submit">Akses Login</button>
+        </form>
+    </main>
+
+    <footer class="footer">
+        &copy; 2025 Aplikasi Presensi Online by Mr.Z-27.
+    </footer>
+
+<script>
+    // ========================================================
+    // 🚨 KRITIS: 1. URL CLEANER (RUN ON PAGE LOAD) 🚨
+    // Memastikan setiap akses ke index.html BEBAS dari Subdomain
+    // ========================================================
+    (function() {
+        const currentHost = window.location.host; // Cth: smpn1.localhost:8080
+        const protocol = window.location.protocol; // Cth: http:
+        const path = window.location.pathname; // Cth: /index.html
+        
+        const hostParts = currentHost.split('.');
+        let baseHost = currentHost; 
+        let redirectNeeded = false;
+
+        // Logika untuk mendeteksi Subdomain di Localhost (smpn1.localhost:8080) atau Prod (smpn1.aplikasi.com)
+        if (hostParts.length > 1) {
+            
+            // Kasus 1: Local Development (e.g., smpn1.localhost:8080) -> hostParts.length == 2
+            if (hostParts.length === 2 && hostParts[1].includes(':')) {
+                baseHost = hostParts[1]; // Ambil 'localhost:8080'
+                redirectNeeded = true;
+            } 
+            // Kasus 2: Production (e.g., smpn1.aplikasi.com) -> hostParts.length >= 3
+            else if (hostParts.length >= 3) {
+                baseHost = hostParts.slice(-2).join('.'); // Ambil 'aplikasi.com'
+                redirectNeeded = true;
+            }
+        }
+        
+        if (redirectNeeded) {
+            const targetUrl = `${protocol}//${baseHost}${path}`;
+            console.log("https://www.imdb.com/title/tt27812086/ Redirecting to clean host:", targetUrl);
+            // window.location.replace() mencegah URL lama (dengan subdomain) tersimpan di history browser.
+            window.location.replace(targetUrl); 
+            return; // Hentikan eksekusi script selanjutnya
+        }
+    })();
+    // ========================================================
+    // 2. SET UP SUPER ADMIN LINK
+    // ========================================================
+    document.addEventListener('DOMContentLoaded', () => {
+        const superAdminLink = document.getElementById('super-admin-link');
+        
+        // Setelah URL Cleaner berjalan, window.location.host PASTI sudah bersih (baseHost)
+        const cleanHost = window.location.host; 
+        const protocol = window.location.protocol;
+        
+        // Bentuk URL Target yang Bersih. Karena host sudah bersih, kita tidak perlu
+        // melakukan split/slice lagi di sini.
+        const targetUrl = `${protocol}//${cleanHost}/super-login.html`;
+
+        if (superAdminLink) {
+            superAdminLink.href = targetUrl;
+            console.log("Link Super Admin disetel ke:", targetUrl); 
+        }
+    });
+
+    // ========================================================
+    // 3. SUBDOMAIN FINDER FORM
+    // ========================================================
+    document.getElementById('subdomain-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const subdomain = document.getElementById('subdomain-input').value.trim().toLowerCase();
+        
+        if (!subdomain) {
+            alert('Silakan masukkan subdomain sekolah Anda.');
+            return;
+        }
+        
+        // Menggunakan window.location.host yang sudah pasti bersih dari URL Cleaner
+        const baseHost = window.location.host; 
+        const protocol = window.location.protocol;
+        
+        // Arahkan ke Subdomain Login (Server Express akan menangani rute /)
+        const loginUrl = `${protocol}//${subdomain}.${baseHost}/login.html`;
+        
+        console.log("Redirecting to subdomain:", loginUrl);
+        window.location.href = loginUrl;
+    });
+
+</script>
 </body>
 </html>

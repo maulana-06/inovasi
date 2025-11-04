@@ -1,235 +1,170 @@
-// File: /routes/guru.js
+// File: routes/guru.js (VERSI Baru)
 
 const express = require('express');
 const router = express.Router();
-const multer = require('multer');
-const path = require('path');
-const fs = require('fs'); 
-const db = require('../database');
-const { checkAuth } = require('../middleware/auth'); 
-const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken'); 
+const pool = require('../database.js'); // Impor pool
+const bcrypt = require('bcryptjs'); // Untuk ubah password
+const multer = require('multer'); // Untuk upload foto
+const fs = require('fs'); // Untuk mengelola file
+const path = require('path'); // Untuk mengelola path
+
+// --- Konfigurasi Multer untuk Upload Foto Profil ---
+const UPLOAD_DIR = 'public/uploads/profil';
+fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 
 const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, 'public/uploads/'),
-  filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, 'profile-' + uniqueSuffix + path.extname(file.originalname));
-  }
+    destination: (req, file, cb) => {
+        cb(null, UPLOAD_DIR);
+    },
+    filename: (req, file, cb) => {
+        // Buat nama file unik: idSekolah-idUser-timestamp.ext
+        const idSekolah = req.user.sekolahId;
+        const idUser = req.user.userId;
+        const ext = path.extname(file.originalname);
+        cb(null, `${idSekolah}-${idUser}-${Date.now()}${ext}`);
+    }
 });
 const upload = multer({ storage: storage });
-
-// Di sisi server (misalnya, di file routes/guru.js)
-
-router.get('/profil', checkAuth, async (req, res) => {
-    // ID guru didapat dari token yang sudah diverifikasi oleh middleware checkAuth
-    const id_guru = req.user.id_guru;
-
+router.get('/status', async (req, res) => {
     try {
-        const query = `
-            SELECT id_guru, nama_lengkap, nip_nipppk, jabatan, status, foto_profil 
-            FROM guru 
-            WHERE id_guru = ?;
-        `;
-        const [rows] = await db.query(query, [id_guru]);
+        const idUser = req.user.userId;
+        const idSekolah = req.user.sekolahId;
 
-        // Cek apakah guru dengan ID tersebut ditemukan
-        if (rows.length === 0) {
-            return res.status(404).json({ message: "Data guru tidak ditemukan." });
-        }
-
-        // Jika ditemukan, kirim datanya sebagai respons JSON
-        res.status(200).json(rows[0]);
-
-    } catch (error) {
-        console.error("Error saat mengambil data profil guru:", error);
-        res.status(500).json({ message: "Terjadi error pada server." });
-    }
-});
-
-// --- ENDPOINT UNTUK UPLOAD FOTO PROFIL ---
-// Middleware 'upload.single('fotoProfil')' untuk memproses satu file dari form field 'Foto_profile'
-router.post('/profil/foto', checkAuth, upload.single('fotoProfil'), async (req, res) => {
-  const id_guru = req.user.id_guru;
-
-  // Cek apakah file berhasil di-upload oleh multer
-  if (!req.file) {
-    return res.status(400).json({ message: "Tidak ada file yang di-upload." });
-  }
-  const filePath = req.file.path.replace('public/', ''); 
-
-  try {
-    await db.query(
-      "UPDATE guru SET foto_profil = ? WHERE id_guru = ?;",
-      [filePath, id_guru]
-    );
-
-    res.status(200).json({ 
-      message: "Foto profil berhasil diperbarui.",
-      filePath: filePath // Kirim balik path file agar frontend bisa langsung menampilkannya
-    });
-  } catch (error) {
-    console.error("Error saat update foto profil:", error);
-    res.status(500).json({ message: "Terjadi error pada server." });
-  }
-});
-
-// =================================================================
-// ENDPOINT: Mengambil profil & status presensi guru yang sedang login
-// METHOD: GET, URL: /api/guru/status
-// =================================================================
-router.get('/status', checkAuth, async (req, res) => {
-    // ID guru didapat dari token yang sudah diverifikasi oleh middleware
-    const id_guru = req.user.id_guru;
-    const tanggal_hari_ini = new Date().toISOString().slice(0, 10);
-
-    try {
-        // Query 1: Ambil data profil guru
-        const [profilRows] = await db.query(
-            "SELECT nama_lengkap, nip_nipppk, email FROM guru WHERE id_guru = ?;", // Tambahkan email
-            [id_guru]
+        const [profilRows] = await pool.query(
+            "SELECT nama_lengkap, email FROM tabel_user WHERE id_user = ? AND id_sekolah = ?",
+            [idUser, idSekolah]
         );
-        if (profilRows.length === 0) {
-            return res.status(404).json({ message: 'Profil guru tidak ditemukan.' });
-        }
+        if (profilRows.length === 0) return res.status(404).json({ message: 'Profil tidak ditemukan.' });
 
-        // Query 2: Ambil data presensi hari ini
-        const [presensiRows] = await db.query(
-            "SELECT jam_masuk, jam_pulang FROM presensi WHERE id_guru = ? AND tanggal = ?;",
-            [id_guru, tanggal_hari_ini]
+        const [presensiRows] = await pool.query(
+            "SELECT waktu_masuk, waktu_pulang FROM tabel_presensi WHERE id_user = ? AND id_sekolah = ? AND tanggal = CURDATE()",
+            [idUser, idSekolah]
         );
 
-        // Tentukan status presensi berdasarkan hasil query
-        let status_presensi = {
-            kondisi: 'BELUM_MASUK',
-            jam_masuk: null,
-            jam_pulang: null
-        };
-
-        if (presensiRows.length > 0) {
-            const presensiHariIni = presensiRows[0];
-            if (presensiHariIni.jam_pulang) {
-                status_presensi.kondisi = 'SUDAH_PULANG';
-                status_presensi.jam_pulang = presensiHariIni.jam_pulang;
-            } else {
-                status_presensi.kondisi = 'SUDAH_MASUK';
-            }
-            status_presensi.jam_masuk = presensiHariIni.jam_masuk;
+        let status_presensi = {};
+        if (presensiRows.length === 0) status_presensi.kondisi = 'BELUM_MASUK';
+        else if (presensiRows[0].waktu_masuk && !presensiRows[0].waktu_pulang) {
+            status_presensi.kondisi = 'SUDAH_MASUK';
+            status_presensi.jam_masuk = presensiRows[0].waktu_masuk;
+        } else {
+            status_presensi.kondisi = 'SUDAH_PULANG';
+            status_presensi.jam_masuk = presensiRows[0].waktu_masuk;
+            status_presensi.jam_pulang = presensiRows[0].waktu_pulang;
         }
-        
-        // Gabungkan semua data menjadi satu objek balasan
-        const responseData = {
+
+        res.json({
             profil: profilRows[0],
             status_presensi: status_presensi
-        };
-
-        res.status(200).json(responseData);
-
-    } catch (error) {
-        console.error("Error saat mengambil status guru:", error);
-        res.status(500).json({ message: "Terjadi error pada server." });
-    }
+        });
+    } catch (error) { res.status(500).json({ message: "Server error di /status" }); }
 });
 
-// =================================================================
-// ENDPOINT: Guru mengubah password-nya sendiri
-// METHOD: PUT, URL: /api/guru/profile/password
-// =================================================================
-router.put('/profile/password', checkAuth, async (req, res) => {
-    // Ambil ID guru dari token yang sudah terverifikasi
-    const id_guru = req.user.id_guru;
-    const { password_lama, password_baru, konfirmasi_password_baru } = req.body;
+// ================================================
+// RUTE BARU UNTUK PROFIL-GURU.HTML
+// ================================================
 
-    // 1. Validasi input dari form
-    if (!password_lama || !password_baru || !konfirmasi_password_baru) {
-        return res.status(400).json({ message: "Semua kolom password wajib diisi." });
-    }
-    if (password_baru !== konfirmasi_password_baru) {
-        return res.status(400).json({ message: "Password baru dan konfirmasi tidak cocok." });
-    }
-    if (password_baru.length < 6) {
-        return res.status(400).json({ message: "Password baru minimal harus 6 karakter." });
-    }
-
+router.get('/profil', async (req, res) => {
     try {
-        // 2. Ambil hash password saat ini dari database untuk guru yang sedang login
-        const [rows] = await db.query("SELECT password_hash FROM guru WHERE id_guru = ?;", [id_guru]);
+        const idUser = req.user.userId;
+        const idSekolah = req.user.sekolahId;
         
-        if (rows.length === 0) {
-            return res.status(404).json({ message: "Pengguna tidak ditemukan." });
-        }
-        const guru = rows[0];
-
-        // 3. Verifikasi apakah password lama yang dimasukkan benar
-        const isPasswordMatch = await bcrypt.compare(password_lama, guru.password_hash);
-        if (!isPasswordMatch) {
-            return res.status(401).json({ message: "Password lama yang Anda masukkan salah." });
-        }
-
-        // 4. Jika benar, hash password baru dan update ke database
-        const salt = await bcrypt.genSalt(10);
-        const password_hash_baru = await bcrypt.hash(password_baru, salt);
-
-        await db.query("UPDATE guru SET password_hash = ? WHERE id_guru = ?;", [password_hash_baru, id_guru]);
-
-        res.status(200).json({ message: "Password berhasil diperbarui." });
-
-    } catch (error) {
-        console.error("Error saat mengubah password:", error);
-        res.status(500).json({ message: "Terjadi error pada server." });
-    }
-});
-router.put('/update-email', checkAuth, async (req, res) => {
-    // 1. Ambil data dari request body dan user ID dari token
-    const { new_email, current_password } = req.body;
-    const id_guru = req.user.id_guru;
-
-    // 2. Validasi input
-    if (!new_email || !current_password) {
-        return res.status(400).json({ message: 'Email baru dan password saat ini wajib diisi.' });
-    }
-
-    try {
-        // 3. Periksa apakah email baru sudah digunakan oleh orang lain
-        let query = "SELECT id_guru FROM guru WHERE email = ? AND id_guru != ?;";
-        let [existingUser] = await db.query(query, [new_email, id_guru]);
-
-        if (existingUser.length > 0) {
-            return res.status(409).json({ message: 'Email ini sudah terdaftar. Silakan gunakan email lain.' });
-        }
-
-        // 4. Verifikasi password saat ini
-        query = "SELECT password_hash, role, nama_lengkap FROM guru WHERE id_guru = ?;";
-        const [rows] = await db.query(query, [id_guru]);
-        const guru = rows[0];
-
-        const isPasswordMatch = await bcrypt.compare(current_password, guru.password_hash);
-        if (!isPasswordMatch) {
-            return res.status(401).json({ message: 'Password yang Anda masukkan salah.' });
-        }
-
-        // 5. Jika semua valid, update email di database
-        query = "UPDATE guru SET email = ? WHERE id_guru = ?;";
-        await db.query(query, [new_email, id_guru]);
-
-        // 6. Buat token baru dengan email yang sudah diupdate
-        const payload = {
-            id_guru: id_guru,
-            email: new_email, // Gunakan email baru di token baru
-            role: guru.role,
-            nama: guru.nama_lengkap
-        };
-        const newToken = jwt.sign(payload, JWT_SECRET, { expiresIn: '8h' });
-
-        // 7. Kirim respons sukses beserta token baru
-        res.status(200).json({ 
-            message: 'Email berhasil diperbarui.',
-            token: newToken // Kirim token baru agar frontend bisa memperbarui localStorage
+const [profilRows] = await pool.query(
+            `SELECT 
+                u.nama_lengkap, u.email, u.role, u.status, u.foto_profil, -- Data dari tabel_user (u)
+                g.nip_nipppk, g.jabatan -- Data dari tabel_guru (g)
+            FROM 
+                tabel_user u 
+            LEFT JOIN -- Pakai LEFT JOIN agar profil tetap tampil meskipun data di tabel_guru belum ada
+                tabel_guru g ON u.id_user = g.id_user 
+            WHERE 
+                u.id_user = ? AND u.id_sekolah = ?`,
+            [idUser, idSekolah]
+        );
+        if (profilRows.length === 0) return res.status(404).json({ message: 'Profil tidak ditemukan.' });
+        
+        // Kirim data BARU (semua ada di profilRows[0])
+        res.json({
+            profil: {
+                nama_lengkap: profilRows[0].nama_lengkap,
+                foto_profil: profilRows[0].foto_profil
+            },
+            jabatan: profilRows[0].jabatan, // <-- Sudah dari tabel_guru
+            nip_nipppk: profilRows[0].nip_nipppk, // <-- Sudah dari tabel_guru
+            status: profilRows[0].status
         });
 
     } catch (error) {
-        console.error("Error saat mengubah email:", error);
-        res.status(500).json({ message: "Terjadi error pada server." });
+        console.error("Error di /api/guru/profil:", error);
+        // Jika error karena kolom belum ada, kirim pesan spesifik
+        if (error.code === 'ER_BAD_FIELD_ERROR') {
+            return res.status(500).json({ message: "Database belum di-update. Jalankan ALTER TABLE." });
+        }
+        res.status(500).json({ message: "Server error di /profil" });
+    }
+});
+
+router.post('/profil/foto', upload.single('fotoProfil'), async (req, res) => {
+    try {
+        const idUser = req.user.userId;
+        const idSekolah = req.user.sekolahId;
+
+        if (!req.file) {
+            return res.status(400).json({ message: 'Tidak ada file di-upload.' });
+        }
+        
+        // Simpan path file (relatif ke folder 'public')
+        const filePath = req.file.path.replace('public', ''); 
+
+        await pool.query(
+            "UPDATE tabel_user SET foto_profil = ? WHERE id_user = ? AND id_sekolah = ?",
+            [filePath, idUser, idSekolah]
+        );
+
+        res.json({ message: 'Foto profil berhasil diperbarui.', filePath: filePath });
+
+    } catch (error) {
+        console.error("Error di /profil/foto:", error);
+        res.status(500).json({ message: "Server error di /profil/foto" });
+    }
+});
+
+router.put('/profil/password', async (req, res) => {
+    try {
+        const idUser = req.user.userId;
+        const { password_lama, password_baru, konfirmasi_password_baru } = req.body;
+
+        if (password_baru !== konfirmasi_password_baru) {
+            return res.status(400).json({ message: 'Konfirmasi password baru tidak cocok.' });
+        }
+
+        const [userRows] = await pool.query(
+            "SELECT password_hash FROM tabel_user WHERE id_user = ?",
+            [idUser]
+        );
+        if (userRows.length === 0) return res.status(404).json({ message: 'User tidak ditemukan.' });
+
+        const user = userRows[0];
+
+        // Cek password lama
+        const isMatch = await bcrypt.compare(password_lama, user.password_hash);
+        if (!isMatch) {
+            return res.status(400).json({ message: 'Password lama salah.' });
+        }
+
+        // Hash password baru
+        const salt = await bcrypt.genSalt(10);
+        const password_hash_baru = await bcrypt.hash(password_baru, salt);
+
+        await pool.query(
+            "UPDATE tabel_user SET password_hash = ? WHERE id_user = ?",
+            [password_hash_baru, idUser]
+        );
+
+        res.json({ message: 'Password berhasil diubah.' });
+
+    } catch (error) {
+        console.error("Error di /profil/password:", error);
+        res.status(500).json({ message: "Server error di /profil/password" });
     }
 });
 

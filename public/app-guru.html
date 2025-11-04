@@ -139,43 +139,24 @@
         </div>
     </nav>
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        console.log("--- Script Ucapan Selamat Dimulai ---");
+    const elemenUcapan = document.getElementById('ucapan-selamat');
+    const userJson = localStorage.getItem('user'); 
+        let namaPengguna = 'guru dan tendik'; // Default jika gagal
 
-        const elemenUcapan = document.getElementById('ucapan-selamat');
-
-        function parseJwt(token) {
+        if (userJson) {
             try {
-                const base64Url = token.split('.')[1];
-                const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-                const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
-                    return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
-                }).join(''));
-                return JSON.parse(jsonPayload);
+                const userData = JSON.parse(userJson); 
+                if (userData && userData.nama_lengkap) {
+                    console.log("4. ✅ SUKSES: Nama ditemukan di Local Storage.");
+                    namaPengguna = userData.nama_lengkap;
+                } else {
+                    console.error("4. ❌ GAGAL: Properti 'nama_lengkap' TIDAK ditemukan di objek user.");
+                }
             } catch (e) {
-                console.error("ERROR saat parsing JWT:", e);
-                return null;
-            }
-        }
-
-        console.log("1. Mencari token di localStorage...");
-        const token = localStorage.getItem('token');
-        let namaPengguna = 'Guru atau Tendik'; 
-
-        if (token) {
-            console.log("2. Token DITEMUKAN:", token);
-            const tokenPayload = parseJwt(token);
-            
-            console.log("3. Hasil decode token (payload):", tokenPayload);
-
-            if (tokenPayload && tokenPayload.nama) {
-                console.log("4. ✅ SUKSES: Properti 'nama_lengkap' ditemukan.");
-                namaPengguna = tokenPayload.nama;
-            } else {
-                console.error("4. ❌ GAGAL: Properti 'nama_lengkap' TIDAK ditemukan di dalam payload token.");
+                console.error("3. ❌ GAGAL: Error parsing JSON user data:", e);
             }
         } else {
-            console.warn("2. ⚠️ PERINGATAN: Token tidak ditemukan. Pengguna mungkin belum login.");
+            console.warn("2. ⚠️ PERINGATAN: Data user tidak ditemukan. Pengguna mungkin belum login.");
         }
 
         const jam = new Date().getHours();
@@ -185,21 +166,31 @@
         else if (jam >= 11 && jam < 15) { ucapanWaktu = 'siang'; } 
         else if (jam >= 15 && jam < 19) { ucapanWaktu = 'sore'; } 
         else { ucapanWaktu = 'malam'; }
+        const teksLengkap = `Assalamualaikum ${namaPengguna}, selamat ${ucapanWaktu}. Silakan lakukan presensi...!`;
         elemenUcapan.style.fontSize = '16px'; 
         elemenUcapan.style.color = '#28a745'; 
-        elemenUcapan.style.fontWeight = 700; 
-        const teksLengkap = `Assalamualaikum ${namaPengguna}, selamat ${ucapanWaktu} dan semoga selalu berbahagia 🙏..`;
-        let index = 0;
+        elemenUcapan.style.fontWeight = 500; 
 
-        function ketikSapaan() {
-            if (index < teksLengkap.length) {
-                elemenUcapan.textContent += teksLengkap.charAt(index);
-                index++;
-                setTimeout(ketikSapaan, 100); 
+    function ketikSapaan() {
+        let index = 0;
+            elemenUcapan.textContent = ''; // Kosongkan elemen sebelum mulai
+            
+            function ketikChar() {
+                if (index < teksLengkap.length) {
+                    elemenUcapan.textContent += teksLengkap.charAt(index);
+                    index++;
+
+                    setTimeout(ketikChar, 100); 
+                } else {
+                    setTimeout(loopSapaan, 5000); // Tunggu 5 detik (5000ms)
+                }
             }
+            ketikChar();
         }
-        ketikSapaan(); 
-    });
+        function loopSapaan() {
+            ketikSapaan();
+        }
+    loopSapaan(); 
 </script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script src="app-guru.js"></script>

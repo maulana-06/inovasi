@@ -1,64 +1,50 @@
-// File: /routes/pengaturan.js
+// File: routes/pengaturan.js (VERSI BARU - Tenant-Aware)
 const express = require('express');
 const router = express.Router();
-const db = require('../database');
-const {checkAuth, checkAdmin} = require('../middleware/auth');
+const pool = require('../database'); 
 
-// =================================================================
-// API 1: Mengambil semua data pengaturan
-// METHOD: GET, URL: /api/pengaturan
-// =================================================================
-router.get('/', [checkAuth, checkAdmin], async (req, res) => {
+// API 1: Mengambil pengaturan untuk SEKOLAH INI
+// (Dipanggil oleh 'auth' dari server.js)
+router.get('/', async (req, res) => {
     try {
-        const [rows] = await db.query("SELECT * FROM pengaturan;");
+        // ATURAN 3: Ambil token idsekolah
+        const idSekolah = req.user.sekolahId; 
 
-        // Ubah array hasil query menjadi sebuah objek tunggal agar mudah digunakan di frontend
-        const settingsObject = rows.reduce((obj, item) => {
-            obj[item.setting_key] = item.setting_value;
-            return obj;
-        }, {});
+        // ATURAN 3: Ambil data
+        const [rows] = await pool.execute(
+            "SELECT latitude, longitude, jam_masuk, jam_pulang, radius_meter FROM tabel_sekolah WHERE id_sekolah = ?",
+            [idSekolah]
+        );
+
+        if (rows.length === 0) {
+            return res.status(404).json({ message: "Data sekolah tidak ditemukan." });
+        }
         
-        res.status(200).json(settingsObject);
+        res.status(200).json(rows[0]); // Kirim objek pengaturan
     } catch (error) {
-        console.error("Error saat mengambil data pengaturan:", error);
+        console.error("Error mengambil pengaturan:", error);
         res.status(500).json({ message: "Terjadi error pada server." });
     }
 });
 
-// =================================================================
-// API 2: Memperbarui data pengaturan
-// METHOD: PUT, URL: /api/pengaturan
-// =================================================================
-router.put('/', [checkAuth, checkAdmin], async (req, res) => {
-    const settings = req.body; // Menerima objek berisi semua pengaturan baru
-
+// API 2: Memperbarui pengaturan untuk SEKOLAH INI
+// (Dipanggil oleh 'auth' dari server)
+router.put('/', async (req, res) => {
     try {
-        const connection = await db.getConnection();
-        await connection.beginTransaction(); // Mulai transaksi
+        const idSekolah = req.user.sekolahId; // ATURAN 3
+        const { latitude, longitude, jam_masuk, jam_pulang, radius_meter } = req.body;
 
-        // Loop melalui setiap pengaturan yang dikirim dan update satu per satu
-        for (const key in settings) {
-            if (Object.hasOwnProperty.call(settings, key)) {
-                const value = settings[key];
-                await connection.query(
-                    "UPDATE pengaturan SET setting_value = ? WHERE setting_key = ?;",
-                    [value, key]
-                );
-            }
-        }
-
-        await connection.commit(); 
-        connection.release(); 
+        await pool.execute(
+            `UPDATE tabel_sekolah 
+             SET latitude = ?, longitude = ?, jam_masuk = ?, jam_pulang = ?, radius_meter = ? 
+             WHERE id_sekolah = ?`,
+            // Urutan harus sesuai dengan tanda tanya (?) di atas
+            [latitude, longitude, jam_masuk, jam_pulang, radius_meter, idSekolah] 
+        );
 
         res.status(200).json({ message: "Pengaturan berhasil diperbarui." });
-
     } catch (error) {
-        console.error("Error saat memperbarui pengaturan:", error);
-        // Jika terjadi error, batalkan semua perubahan
-        if (connection) {
-            await connection.rollback();
-            connection.release();
-        }
+        console.error("Error memperbarui pengaturan:", error);
         res.status(500).json({ message: "Terjadi error pada server." });
     }
 });

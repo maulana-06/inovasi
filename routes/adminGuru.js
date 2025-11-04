@@ -1,192 +1,300 @@
-// =================================================================
-// routes/adminGuru.js
-// =================================================================
+// File: routes/adminGuru.js (VERSI BARU - Tenant-Aware & Menggunakan tabel_guru)
+
 const express = require('express');
-const bcrypt = require('bcryptjs'); 
 const router = express.Router();
-const db = require('../database'); 
-const { checkAuth, checkAdmin } = require('../middleware/auth');
+const pool = require('../database');
+const bcrypt = require('bcryptjs'); 
 
-// =================================================================
-// BAGIAN 1: READ (Melihat semua data guru)
-// METHOD: GET, ENDPOINT: /api/admin/guru
-// =================================================================
-router.get('/', async (req, res) => {
-  try {
-    const query = "SELECT id_guru, nama_lengkap, nip_nipppk, jabatan, email, status FROM guru ORDER BY nama_lengkap ASC;";
-    const [rows] = await db.query(query);
-    res.status(200).json(rows);
-  } catch (error) {
-    console.error("Error saat mengambil data guru:", error);
-    res.status(500).json({ message: "Terjadi error pada server." });
-  }
-});
-// =================================================================
-// BAGIAN 1.5: READ ONE (Melihat data satu guru)
-// METHOD: GET, ENDPOINT: /api/admin/guru/:id_guru
-// =================================================================
-router.get('/:id_guru', async (req, res) => {
-  try {
-    const { id_guru } = req.params;
-    const query = "SELECT id_guru, nama_lengkap, nip_nipppk, jabatan, email FROM guru WHERE id_guru = ?;";
-    const [rows] = await db.query(query, [id_guru]);
-    
-    if (rows.length === 0) {
-      return res.status(404).json({ message: "Data guru tidak ditemukan." });
-    }
-    
-    res.status(200).json(rows[0]); // Kirim objek pertama, bukan array
-  } catch (error) {
-    console.error("Error saat mengambil data guru:", error);
-    res.status(500).json({ message: "Terjadi error pada server." });
-  }
-});
-
-// =================================================================
-// BAGIAN 2: CREATE (Membuat guru baru)
-// METHOD: POST, ENDPOINT: /api/admin/guru
-// =================================================================
-router.post('/', async (req, res) => {
-  const { nama_lengkap, nip_nipppk, jabatan, email, password } = req.body;
-
-  // Validasi data dasar
-  if (!nama_lengkap || !nip_nipppk || !email || !password) {
-    return res.status(400).json({ message: "Semua kolom wajib diisi." });
-  }
-
-  try {
-    // 1. Enkripsi password sebelum disimpan
-    const salt = await bcrypt.genSalt(10);
-    const password_hash = await bcrypt.hash(password, salt);
-
-    // 2. Simpan ke database
-    const query = "INSERT INTO guru (nama_lengkap, nip_nipppk, jabatan, email, password_hash, status) VALUES (?, ?, ?, ?, ?, ?);";
-    await db.query(query, [nama_lengkap, nip_nipppk, jabatan, email, password_hash, 'Aktif']);
-  
-    res.status(201).json({ message: "Guru baru berhasil ditambahkan." });
-  } catch (error) {
-    // Tangani error jika NIP/email sudah ada (unique constraint)
-    if (error.code === 'ER_DUP_ENTRY') {
-      return res.status(409).json({ message: "NIP/NIPPPK atau email sudah terdaftar." });
-    }
-    console.error("Error saat membuat guru baru:", error);
-    res.status(500).json({ message: "Terjadi error pada server." });
-  }
-});
-// =================================================================
-// BAGIAN 3: UPDATE (Memperbarui data guru)
-// METHOD: PUT, ENDPOINT: /api/admin/guru/:id_guru
-// =================================================================
-router.put('/:id_guru', async (req, res) => {
-  const { id_guru } = req.params;
-  const { nama_lengkap, nip_nipppk, jabatan, email } = req.body;
-
-  if (!nama_lengkap || !nip_nipppk || !email) {
-    return res.status(400).json({ message: "Nama, NIP/NIPPPK, dan email wajib diisi." });
-  }
-
-  try {
-    const query = "UPDATE guru SET nama_lengkap = ?, nip_nipppk = ?, jabatan = ?, email = ? WHERE id_guru = ?;";
-    const [result] = await db.query(query, [nama_lengkap, nip_nipppk, jabatan, email, id_guru]);
-
-    // Jika tidak ada baris yang ter-update, berarti ID tidak ditemukan
-    if (result.affectedRows === 0) {
-      return res.status(404).json({ message: "Data guru tidak ditemukan." });
-    }
-
-    res.status(200).json({ message: "Data guru berhasil diperbarui." });
-  } catch (error) {
-    if (error.code === 'ER_DUP_ENTRY') {
-      return res.status(409).json({ message: "NIP/NIPPPK atau email sudah digunakan oleh guru lain." });
-    }
-    console.error("Error saat memperbarui data guru:", error);
-    res.status(500).json({ message: "Terjadi error pada server." });
-  }
-});
-
-// =================================================================
-// BAGIAN 4: DELETE (Menghapus data guru - Hard Delete)
-// METHOD: DELETE, ENDPOINT: /api/admin/guru/:id_guru
-// =================================================================
-router.delete('/:id_guru', [checkAuth, checkAdmin], async (req, res) => {
-    const guruId = req.params.id_guru;
-    
-    let connection;
+// ================================================
+// ATURAN 2: 'auth' sudah dihapus dari semua rute di bawah
+// ================================================
+// GET Mendapatkan DAFTAR guru (nama, email, status, role) untuk SEKOLAH INI
+router.get('/all-staff', async (req, res) => {
     try {
-        connection = await db.getConnection();
-        await connection.beginTransaction(); 
-
-        console.log(`Menghapus data presensi untuk guru ID: ${guruId}`);
-        await connection.execute('DELETE FROM presensi WHERE id_guru = ?', [guruId]);
-
-        console.log(`Menghapus data izin/sakit untuk guru ID: ${guruId}`);
-        await connection.execute('DELETE FROM izin_sakit_tugas WHERE id_guru = ?', [guruId]);
-
-        // =================================================================
-        // Delete Tabel lain yang berelasi dengan tabel guru,
-        // Setelah semua data terkait bersih, hapus data induk (guru)
-        // =================================================================
-        console.log(`Menghapus data utama guru ID: ${guruId}`);
-        const [result] = await connection.execute('DELETE FROM guru WHERE id_guru = ?', [guruId]);
-
-        if (result.affectedRows === 0) {
-            await connection.rollback(); 
-            return res.status(404).json({ message: 'Guru tidak ditemukan.' });
-        }
-
-        await connection.commit(); 
-        res.status(200).json({ message: 'Data guru dan semua data terkait berhasil dihapus permanen.' });
-
-    } catch (error) {
-        console.error("GAGAL HAPUS GURU! Error terdeteksi di blok catch:", error);
-        if (connection) await connection.rollback();
-
-        // =================================================================
-        // Perbaikan Error handling yang lebih spesifik
-        // =================================================================
-        if (error.code === 'ER_ROW_IS_REFERENCED_2') {
-            return res.status(409).json({ 
-                message: 'Gagal menghapus. Data guru ini masih terpakai di data lain (misalnya jadwal mengajar, data wali kelas, dll.) dan tidak dapat dihapus.' 
-            });
-        }
-        // Pesan error default jika bukan karena foreign key
-        res.status(500).json({ message: 'Gagal menghapus data guru karena kesalahan server.' }); 
-
-    } finally {
-        if (connection) connection.release();
-    }
-});
-
-// =================================================================
-// BAGIAN 5: RESET (Reset - Password)
-// METHOD: Reset-Password, ENDPOINT: /api/auth/forgot-password/:id_guru
-// =================================================================
-router.post('/:id_guru/reset-password', [checkAuth, checkAdmin], async (req, res) => {
-    const { id_guru } = req.params;
-    const { password_baru } = req.body;
-
-    if (!password_baru || password_baru.length < 6) {
-        return res.status(400).json({ message: 'Password baru minimal harus 6 karakter.' });
-    }
-
-    try {
-        const salt = await bcrypt.genSalt(10);
-        const password_hash_baru = await bcrypt.hash(password_baru, salt);
-
-        const [result] = await db.query(
-            "UPDATE guru SET password_hash = ? WHERE id_guru = ?;",
-            [password_hash_baru, id_guru]
+        const idSekolah = req.user.sekolahId;
+        const [staffList] = await pool.query(
+            `SELECT 
+                u.id_user, u.nama_lengkap, g.nip_nipppk 
+            FROM 
+                tabel_user u 
+            LEFT JOIN 
+                tabel_guru g ON u.id_user = g.id_user 
+            WHERE 
+                u.id_sekolah = ? AND (u.role = 'Admin' OR u.role = 'Guru')
+            ORDER BY u.role, u.nama_lengkap`,
+            [idSekolah]
         );
-
-        if (result.affectedRows === 0) {
-            return res.status(404).json({ message: 'Guru tidak ditemukan.' });
-        }
-
-        res.status(200).json({ message: 'Password guru berhasil direset.' });
+        res.status(200).json(staffList);
     } catch (error) {
-        console.error("Error saat reset password:", error);
+        console.error("Error mengambil daftar staf:", error);
         res.status(500).json({ message: "Terjadi error pada server." });
     }
 });
 
+router.get('/', async (req, res) => {
+    try {
+        const idSekolah = req.user.sekolahId; // ATURAN 3
+
+        // Query ini sudah benar (tidak perlu JOIN untuk daftar)
+        const [gurus] = await pool.query(
+            `SELECT id_user, nama_lengkap, email, status, role 
+             FROM tabel_user 
+             WHERE (role = 'Admin' OR role = 'Guru') AND id_sekolah = ?
+             ORDER BY role, nama_lengkap`, 
+            [idSekolah]
+        );
+        res.status(200).json(gurus);
+
+    } catch (error) {
+        console.error("Error mengambil data guru:", error);
+        res.status(500).json({ message: "Terjadi error pada server." });
+    }
+});
+
+// ================================================
+// GET Mengambil DETAIL LENGKAP satu guru (untuk form edit)
+// ================================================
+router.get('/:id_user', async (req, res) => {
+    try {
+        const idSekolah = req.user.sekolahId;
+        const { id_user } = req.params;
+
+        // Query BARU (menggunakan LEFT JOIN)
+        const [rows] = await pool.query(
+            `SELECT 
+                u.nama_lengkap, u.email, u.status, u.role, -- <-- Tambahkan u.role
+                g.nip_nipppk, g.jabatan, g.pendidikan, g.mulai_tugas, g.alamat, g.status_keluarga, g.nomor_telepon 
+            FROM 
+                tabel_user u 
+            LEFT JOIN 
+                tabel_guru g ON u.id_user = g.id_user 
+            WHERE 
+                u.id_user = ? AND u.id_sekolah = ? AND (u.role = 'Admin' OR u.role = 'Guru')`,
+            [id_user, idSekolah]
+        );
+
+        if (rows.length === 0) {
+            return res.status(404).json({ message: "Data guru tidak ditemukan." });
+        }
+        res.status(200).json(rows[0]);
+
+    } catch (error) {
+        console.error("Error mengambil detail guru:", error);
+        res.status(500).json({ message: "Terjadi error pada server." });
+    }
+});
+
+// ================================================
+// POST Menambahkan guru BARU (INSERT ke DUA tabel)
+// ================================================
+router.post('/', async (req, res) => {
+    const connection = await pool.getConnection(); // Ambil koneksi untuk transaksi
+    try {
+        await connection.beginTransaction(); // Mulai transaksi
+
+        const idSekolah = req.user.sekolahId; 
+        
+        // Ambil data dari body (form di manajemen-guru)
+        const { 
+            nama_lengkap, email, password, status, // Untuk tabel_user
+            nip_nipppk, jabatan, pendidikan, mulai_tugas, alamat, status_keluarga, nomor_telepon // Untuk tabel_guru
+        } = req.body;
+
+        // 1. INSERT ke tabel_user
+        const salt = await bcrypt.genSalt(10);
+        const password_hash = await bcrypt.hash(password, salt);
+        const [resultUser] = await connection.query(
+            "INSERT INTO tabel_user (id_sekolah, nama_lengkap, email, password_hash, status, role) VALUES (?, ?, ?, ?, ?, 'guru')",
+            [idSekolah, nama_lengkap, email, password_hash, status]
+        );
+        const newUserId = resultUser.insertId; // Dapatkan ID user yang baru dibuat
+
+        // 2. INSERT ke tabel_guru
+        await connection.query(
+            `INSERT INTO tabel_guru 
+             (id_user, id_sekolah, nip_nipppk, jabatan, pendidikan, mulai_tugas, alamat, status_keluarga, nomor_telepon) 
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [newUserId, idSekolah, nip_nipppk, jabatan, pendidikan, mulai_tugas, alamat, status_keluarga, nomor_telepon]
+        );
+
+        await connection.commit(); // Sukses! Simpan kedua INSERT
+        res.status(201).json({ message: 'Guru berhasil ditambahkan', id_user_baru: newUserId });
+
+    } catch (error) {
+        await connection.rollback(); // Gagal! Batalkan semua INSERT
+        if (error.code === 'ER_DUP_ENTRY') {
+             res.status(400).json({ message: 'Email sudah terdaftar.' });
+        } else {
+            console.error("Error menambah guru:", error);
+            res.status(500).json({ message: "Terjadi error pada server." });
+        }
+    } finally {
+        connection.release(); // Selalu lepaskan koneksi
+    }
+});
+
+// ================================================
+// PUT Mengupdate guru (UPDATE DUA tabel)
+// ================================================
+router.put('/:id_user', async (req, res) => {
+    const connection = await pool.getConnection();
+    try {
+        await connection.beginTransaction();
+
+        const idSekolah = req.user.sekolahId; 
+        const { id_user } = req.params;
+        
+        // Ambil data dari body
+        const { 
+            nama_lengkap, email, status, // Untuk tabel_user
+            nip_nipppk, jabatan, pendidikan, mulai_tugas, alamat, status_keluarga, nomor_telepon // Untuk tabel_guru
+        } = req.body;
+        
+        // 1. UPDATE tabel_user
+        await connection.query(
+            "UPDATE tabel_user SET nama_lengkap = ?, email = ?, status = ? WHERE id_user = ? AND id_sekolah = ?",
+            [nama_lengkap, email, status, id_user, idSekolah]
+        );
+        
+        // 2. UPDATE tabel_guru (Gunakan INSERT ... ON DUPLICATE KEY UPDATE)
+        // Ini akan mengupdate jika baris sudah ada, atau membuat baru jika belum ada
+        await connection.query(
+            `INSERT INTO tabel_guru 
+             (id_user, id_sekolah, nip_nipppk, jabatan, pendidikan, mulai_tugas, alamat, status_keluarga, nomor_telepon) 
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+             ON DUPLICATE KEY UPDATE 
+             nip_nipppk=VALUES(nip_nipppk), jabatan=VALUES(jabatan), pendidikan=VALUES(pendidikan), 
+             mulai_tugas=VALUES(mulai_tugas), alamat=VALUES(alamat), status_keluarga=VALUES(status_keluarga), 
+             nomor_telepon=VALUES(nomor_telepon)`,
+            [id_user, idSekolah, nip_nipppk, jabatan, pendidikan, mulai_tugas, alamat, status_keluarga, nomor_telepon]
+        );
+        
+        await connection.commit();
+        res.status(200).json({ message: 'Data guru berhasil diperbarui' });
+
+    } catch (error) {
+        await connection.rollback();
+        console.error("Error update guru:", error);
+        res.status(500).json({ message: "Terjadi error pada server." });
+    } finally {
+        connection.release();
+    }
+});
+// ================================================
+// === RUTE BARU UNTUK HAPUS GURU ===
+// ================================================
+router.delete('/:id_user', async (req, res) => {
+    // Kita pakai transaksi untuk jaga-jaga jika CASCADE tidak aktif
+    const connection = await pool.getConnection(); 
+    try {
+        await connection.beginTransaction();
+
+        const idSekolah = req.user.sekolahId;
+        const idAdminYangLogin = req.user.userId; // Dapatkan ID admin yang menghapus
+        const { id_user } = req.params;
+
+        // Keamanan: Pastikan admin tidak menghapus dirinya sendiri
+        if (parseInt(id_user) === idAdminYangLogin) {
+            throw new Error("Anda tidak dapat menghapus akun Anda sendiri.");
+        }
+
+        // 1. Hapus dari tabel_guru (sebenarnya tidak perlu jika CASCADE aktif, tapi lebih aman)
+        await connection.query(
+            "DELETE FROM tabel_guru WHERE id_user = ? AND id_sekolah = ?",
+            [id_user, idSekolah]
+        );
+
+        // 2. Hapus dari tabel_user
+        const [resultUser] = await connection.query(
+            "DELETE FROM tabel_user WHERE id_user = ? AND role != 'Super Admin'", // Jangan hapus super admin
+            [id_user]
+        );
+
+        // Cek apakah ada baris yang terhapus
+        if (resultUser.affectedRows === 0) {
+             throw new Error("Guru tidak ditemukan atau Anda tidak berhak menghapusnya.");
+        }
+
+        await connection.commit(); // Sukses! Hapus permanen
+        res.status(200).json({ message: 'Guru berhasil dihapus secara permanen.' });
+
+    } catch (error) {
+        await connection.rollback(); // Gagal! Batalkan penghapusan
+        console.error("Error menghapus guru:", error);
+        // Kirim pesan error yang spesifik jika itu error keamanan kita
+        if (error.message.includes("menghapus akun Anda sendiri") || error.message.includes("Guru tidak ditemukan")) {
+            res.status(400).json({ message: error.message });
+        } else {
+            res.status(500).json({ message: "Terjadi error pada server saat menghapus." });
+        }
+    } finally {
+        connection.release(); // Selalu lepaskan koneksi
+    }
+});
+// ================================================
+// === RUTE BARU: RESET PASSWORD MASSAL GURU ===
+// ================================================
+router.post('/reset-passwords', async (req, res) => {
+    // Pastikan hanya Admin yang bisa akses (Meskipun sudah dijaga di server.js, cek lagi)
+    if (req.user.role !== 'Admin') {
+        return res.status(403).json({ message: 'Akses ditolak.' });
+    }
+
+    const connection = await pool.getConnection(); 
+    try {
+        await connection.beginTransaction(); // Mulai transaksi
+
+        const idSekolah = req.user.sekolahId;
+        
+        // 1. Tentukan Password Default BARU (JANGAN GUNAKAN PASSWORD YANG MUDAH DITEBAK!)
+        //    Idealnya ini dibuat random per guru, tapi untuk simpel kita buat sama dulu.
+        const passwordDefault = `Pass${Math.floor(1000 + Math.random() * 9000)}`; // Contoh: Pass1234
+        console.log(`[Reset Pass] Password default baru untuk sekolah ${idSekolah}: ${passwordDefault}`); // Log password (Hapus di produksi!)
+
+        // 2. Hash Password Default
+        const salt = await bcrypt.genSalt(10);
+        const passwordDefaultHash = await bcrypt.hash(passwordDefault, salt);
+
+        // 3. Ambil SEMUA GURU (role='guru') di sekolah ini
+        const [gurus] = await connection.query(
+            "SELECT id_user, email, nama_lengkap FROM tabel_user WHERE id_sekolah = ? AND role = 'Guru'",
+            [idSekolah]
+        );
+
+        if (gurus.length === 0) {
+            throw new Error("Tidak ada akun guru yang ditemukan di sekolah ini.");
+        }
+
+        // 4. Loop dan UPDATE password setiap guru
+        const updatePromises = gurus.map(guru => {
+            console.log(`[Reset Pass] Mengupdate password untuk ${guru.email}`);
+            return connection.query(
+                "UPDATE tabel_user SET password_hash = ? WHERE id_user = ? AND id_sekolah = ?",
+                [passwordDefaultHash, guru.id_user, idSekolah]
+            );
+        });
+        await Promise.all(updatePromises); // Tunggu semua update selesai
+
+        await connection.commit(); // Sukses! Simpan semua perubahan password
+
+        // 5. Siapkan data kredensial untuk ditampilkan di frontend
+        const kredensialAwal = gurus.map(guru => ({
+            nama: guru.nama_lengkap,
+            email: guru.email,
+            passwordBaru: passwordDefault // Kirim password PLAIN TEXT!
+        }));
+
+        res.status(200).json({ 
+            message: `Password untuk ${gurus.length} guru berhasil direset!`,
+            kredensial: kredensialAwal 
+        });
+
+    } catch (error) {
+        await connection.rollback(); // Gagal! Batalkan semua perubahan password
+        console.error("Error saat reset password massal:", error);
+        res.status(500).json({ message: error.message || "Terjadi error pada server saat reset password." });
+    } finally {
+        connection.release(); 
+    }
+});
 module.exports = router;
