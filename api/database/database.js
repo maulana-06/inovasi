@@ -1,18 +1,12 @@
 const { Pool } = require('pg');
-
-// Vercel akan secara otomatis mengisi process.env.DATABASE_URL
-// dengan Connection String Supabase yang Anda masukkan di Dashboard Vercel.
 const pool = new Pool({
-  // Gunakan connectionString untuk mengambil URI lengkap dari Vercel
-  connectionString: process.env.DATABASE_URL,
-  
-  // Opsi SSL ini PENTING karena Supabase (cloud DB) memerlukan koneksi yang aman (HTTPS/SSL)
+
+    connectionString: process.env.DATABASE_URL,
   ssl: {
     rejectUnauthorized: false
   }
 });
 
-// Tes koneksi (Opsional, tapi bagus untuk debugging)
 pool.connect((err, client, release) => {
   if (err) {
     // Jika koneksi gagal, Vercel logs akan menampilkan error ini
@@ -28,5 +22,4 @@ pool.connect((err, client, release) => {
   });
 });
 
-// Export pool agar bisa digunakan di route API Anda
 module.exports = pool;
