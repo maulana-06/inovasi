@@ -116,17 +116,17 @@ app.post('/daftar', async (req, res) => {
 
 // =============================================================
 // [PERBAIKAN, "Satpam" aktif SETELAH rute publik
-const identifyTenant = require('./middleware/identifyTenant'); 
+const identifyTenant = require('/middleware/identifyTenant'); 
 app.use(identifyTenant); 
-const auth = require('./middleware/auth');
+const auth = require('/middleware/auth');
 
 app.get('/', (req, res) => {
     res.send('API Utama Berjalan!');
     if (req.isMainDomain) {
         // Jika ini domain utama (localhost:8080), kirim landing page
-        res.sendFile(path.join(__dirname, 'public', '/index.html'));
+        res.sendFile(path.join(__dirname, 'public', 'index.html'));
     } else {
-        res.redirect('./login.html');
+        res.redirect('login.html');
     }
 });
 // =============================================================
