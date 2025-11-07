@@ -20,7 +20,7 @@ router.get('/', auth, async (req, res) => {
             SELECT p.id_presensi, p.tanggal, p.jam_masuk, p.jam_pulang, p.status, g.nama_lengkap
             FROM presensi AS p
             JOIN guru AS g ON p.id_guru = g.id_guru
-            WHERE p.tanggal = ?
+            WHERE p.tanggal = $1
             ORDER BY g.nama_lengkap ASC;
         `;
         const [rows] = await db.query(query, [tanggal]);
@@ -46,8 +46,8 @@ router.put('/:id_presensi', auth, async (req, res) => {
     try {
         const query = `
             UPDATE presensi 
-            SET jam_masuk = ?, jam_pulang = ?, status = ? 
-            WHERE id_presensi = ?;
+            SET jam_masuk = $1, jam_pulang = $2, status = $3 
+            WHERE id_presensi = $4;
         `;
         // jam_pulang bisa null jika dikosongkan
         const jamPulangValue = jam_pulang ? jam_pulang : null;

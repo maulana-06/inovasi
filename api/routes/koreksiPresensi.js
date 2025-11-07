@@ -40,7 +40,7 @@ router.get('/', async (req, res) => {
                 u.nama_lengkap 
              FROM tabel_presensi p 
              JOIN tabel_user u ON p.id_user = u.id_user 
-             WHERE p.id_sekolah = ? AND p.tanggal BETWEEN ? AND ?
+             WHERE p.id_sekolah = $1 AND p.tanggal BETWEEN $2 AND $3
              ORDER BY p.tanggal DESC, u.nama_lengkap`, // Urutkan tanggal terbaru dulu
             [idSekolah, mulai, selesai]
         );
@@ -66,22 +66,22 @@ router.put('/:id_presensi', async (req, res) => {
         console.log(`[Koreksi PUT] Menerima update untuk id_presensi: ${id_presensi}, id_sekolah: ${idSekolah}`); // Debug
         console.log("[Koreksi PUT] Data baru:", { waktu_masuk, waktu_pulang, status, keterangan }); // Debug
 
-        // === PERBAIKAN: Gunakan pool.execute ===
-        const [result] = await pool.execute( 
+        // === PERBAIKAN: Gunakan pool.query ===
+        const [result] = await pool.query( 
             `UPDATE tabel_presensi 
              SET 
-                waktu_masuk = ?, 
-                waktu_pulang = ?, 
-                status = ?, 
-                keterangan = ? 
+                waktu_masuk = $1, 
+                waktu_pulang = $2, 
+                status = $3, 
+                keterangan = $4 
              WHERE 
-                id_presensi = ? AND id_sekolah = ?`, 
+                id_presensi = $5 AND id_sekolah = $6`, 
             [
                 waktu_masuk, 
                 waktu_pulang, 
                 status, 
                 keterangan, 
-                id_presensi, // Pastikan urutan parameter benar
+                id_presensi, 
                 idSekolah
             ]
         );

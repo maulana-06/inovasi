@@ -11,8 +11,8 @@ router.get('/', async (req, res) => {
         const idSekolah = req.user.sekolahId; 
 
         // ATURAN 3: Ambil data
-        const [rows] = await pool.execute(
-            "SELECT latitude, longitude, jam_masuk, jam_pulang, radius_meter FROM tabel_sekolah WHERE id_sekolah = ?",
+        const [rows] = await pool.query(
+            "SELECT latitude, longitude, jam_masuk, jam_pulang, radius_meter FROM tabel_sekolah WHERE id_sekolah = $1",
             [idSekolah]
         );
 
@@ -34,11 +34,11 @@ router.put('/', async (req, res) => {
         const idSekolah = req.user.sekolahId; // ATURAN 3
         const { latitude, longitude, jam_masuk, jam_pulang, radius_meter } = req.body;
 
-        await pool.execute(
+        await pool.query(
             `UPDATE tabel_sekolah 
-             SET latitude = ?, longitude = ?, jam_masuk = ?, jam_pulang = ?, radius_meter = ? 
-             WHERE id_sekolah = ?`,
-            // Urutan harus sesuai dengan tanda tanya (?) di atas
+             SET latitude = $1, longitude = $2, jam_masuk = $3, jam_pulang = $4, radius_meter = $5 
+             WHERE id_sekolah = $6`,
+            // Urutan harus sesuai dengan tanda tanya ($) di atas
             [latitude, longitude, jam_masuk, jam_pulang, radius_meter, idSekolah] 
         );
 

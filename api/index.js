@@ -1,4 +1,4 @@
-// File: /ABSENSI/server.js 
+// File: index.js 
 
 require('dotenv').config();
 const express = require('express');
@@ -46,52 +46,51 @@ app.post('/daftar', async (req, res) => {
     let connection;
     try {
         console.log('Mencoba koneksi ke DB...');
-        // [PERBAIKAN 1] Ganti 'dbPool' menjadi 'pool'
-        connection = await pool.getConnection(); 
+        connection = await pool.query(); 
         console.log('Koneksi DB berhasil.');
         
         await connection.beginTransaction(); 
 
         // --- Validasi Keunikan (Sangat Penting!) ---
-        const [npsnRows] = await connection.execute(
-            'SELECT npsn FROM tabel_sekolah WHERE npsn = ?', [npsn]
+        const [npsnRows] = await pool.query(
+            'SELECT npsn FROM tabel_sekolah WHERE npsn = $1', [npsn]
         );
         if (npsnRows.length > 0) {
             throw new Error('NPSN sudah terdaftar.');
         }
 
-        const [subdomainRows] = await connection.execute(
-            'SELECT subdomain FROM tabel_sekolah WHERE subdomain = ?', [subdomain]
+        const [subdomainRows] = await pool.query(
+            'SELECT subdomain FROM tabel_sekolah WHERE subdomain = $1', [subdomain]
         );
         if (subdomainRows.length > 0) {
             throw new Error('Subdomain sudah digunakan. Pilih nama lain.');
         }
         
-        const [emailRows] = await connection.execute(
-            'SELECT email FROM tabel_user WHERE email = ?', [email_admin]
+        const [emailRows] = await pool.query(
+            'SELECT email FROM tabel_user WHERE email = $1', [email_admin]
         );
         if (emailRows.length > 0) {
             throw new Error('Email admin sudah terdaftar.');
         }
 
         // Simpan ke tabel_sekolah ---
-        const [sekolahResult] = await connection.execute(
-            'INSERT INTO tabel_sekolah (npsn, subdomain, nama_sekolah) VALUES (?, ?, ?)',
+        const [sekolahResult] = await pool.query(
+            'INSERT INTO tabel_sekolah (npsn, subdomain, nama_sekolah) VALUES ($1, $2, $3)',
             [npsn, subdomain, nama_sekolah]
         );
         
         const newSekolahId = sekolahResult.insertId; 
 
         // Simpan ke tabel_user ---
-        await connection.execute(
-            'INSERT INTO tabel_user (id_sekolah, email, password_hash, nama_lengkap, role) VALUES (?, ?, ?, ?, ?)',
+        await pool.query(
+            'INSERT INTO tabel_user (id_sekolah, email, password_hash, nama_lengkap, role) VALUES ($1, $2, $3, $4, $5)',
             [newSekolahId, email_admin, password_hash, nama_admin, 'Admin']
         );
 
         await connection.commit(); 
         console.log('Pendaftaran BERHASIL.');
         // Arahkan pengguna ke halaman sukses !
-        res.redirect(`/daftar-sukses.html?subdomain=${subdomain}`);
+        res.redirect(`/daftar-sukses.html$1subdomain=${subdomain}`);
 
     } catch (error) {
         // --- TAMBAHKAN INI UNTUK MELIHAT ERROR APA YANG TERJADI ---
@@ -170,4 +169,21 @@ app.use('/api/superAuth', superAuthRoutes);
 app.get('/api', (req, res) => {
   res.status(200).send('API is running successfully on Vercel!');
 });
+const PORT = process.env.PORT || 8080; 
+
+const testDbConnection = async () => {
+    try {
+        const client = await pool.connect();
+        console.log("✅ Koneksi Host ke Supabase SUKSES!");
+        client.release();
+    } catch (error) {
+        console.error("❌ GAGAL KONEKSI HOST/DNS:", error.message);
+    }
+};
+if (process.env.NODE_ENV !== 'production') {
+    app.listen(PORT, async () => { // Tambahkan async test
+        console.log(`Aplikasi berjalan pada port ${PORT}.`);
+        await testDbConnection(); // Panggil test
+    });
+}
 module.exports = app;

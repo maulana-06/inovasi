@@ -44,7 +44,7 @@ const upload = multer({ storage: multer.memoryStorage() });
         await pool.query(
             `INSERT INTO tabel_izin 
              (id_sekolah, id_user, jenis, tanggal_mulai, tanggal_selesai, keterangan, file_bukti, status) 
-             VALUES (?, ?, ?, ?, ?, ?, ?, 'Menunggu')`,
+             VALUES ($1, $2, $3, $4, $5, $6, $7, 'Menunggu')`,
             [idSekolah, idUser, jenis_izin, tanggal_mulai, tanggal_selesai, keterangan, pathFileBukti]
         );
 

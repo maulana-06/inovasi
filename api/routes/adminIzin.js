@@ -12,7 +12,7 @@ router.get('/', async (req, res) => {
             `SELECT i.*, u.nama_lengkap 
              FROM tabel_izin i 
              JOIN tabel_user u ON i.id_user = u.id_user 
-             WHERE i.id_sekolah = ? 
+             WHERE i.id_sekolah = $1 
              ORDER BY i.created_at DESC`,
             [idSekolah]
         );
@@ -31,9 +31,9 @@ router.put('/:id_izin/status', async (req, res) => {
         const { id_izin } = req.params;
         const { status } = req.body;
 
-        // (Kita tambahkan 'AND id_sekolah = ?' untuk keamanan)
+        // (Kita tambahkan 'AND id_sekolah = $' untuk keamanan)
         await pool.query(
-            "UPDATE tabel_izin SET status = ? WHERE id_izin = ? AND id_sekolah = ?",
+            "UPDATE tabel_izin SET status = $1 WHERE id_izin = $2 AND id_sekolah = $3",
             [status, id_izin, idSekolah]
         );
         

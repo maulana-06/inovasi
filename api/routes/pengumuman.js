@@ -17,7 +17,7 @@ router.get('/terbaru', async (req, res) => {
 
         // ATURAN 3: Query ke 'tabel_pengumuman' dan filter id_sekolah
         const [rows] = await pool.query(
-            'SELECT isi_pengumuman FROM tabel_pengumuman WHERE id_sekolah = ? ORDER BY created_at DESC LIMIT 1',
+            'SELECT isi_pengumuman FROM tabel_pengumuman WHERE id_sekolah = $1 ORDER BY created_at DESC LIMIT 1',
             [idSekolah]
         );
         
@@ -46,7 +46,7 @@ router.post('/', async (req, res) => {
         // ATURAN 3: INSERT ke 'tabel_pengumuman' dengan id_sekolah
         // (Kita buat baru saja, tidak perlu UPDATE)
         await pool.query(
-            'INSERT INTO tabel_pengumuman (id_sekolah, isi_pengumuman) VALUES (?, ?)',
+            'INSERT INTO tabel_pengumuman (id_sekolah, isi_pengumuman) VALUES ($1, $2)',
             [idSekolah, isi_pengumuman] 
         );        
         res.status(201).json({ message: 'Pengumuman berhasil disimpan!' });

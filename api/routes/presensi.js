@@ -25,7 +25,7 @@ router.post('/masuk', async (req, res) => {
                 longitude,            
                 radius_meter, 
                 jam_masuk 
-            FROM tabel_sekolah WHERE id_sekolah = ?`,
+            FROM tabel_sekolah WHERE id_sekolah = $1`,
             [idSekolah]
         );
 
@@ -44,7 +44,7 @@ router.post('/masuk', async (req, res) => {
 
         // 2. Cek apakah sudah presensi
         const [existing] = await pool.query(
-            "SELECT * FROM tabel_presensi WHERE id_user = ? AND tanggal = CURDATE()", [idUser]
+            "SELECT * FROM tabel_presensi WHERE id_user = $1 AND tanggal = CURDATE()", [idUser]
         );
         if (existing.length > 0) {
             return res.status(400).json({ message: 'Anda sudah presensi masuk hari ini.' });
@@ -57,8 +57,8 @@ router.post('/masuk', async (req, res) => {
         const status = (waktuSekarang > jamMasukSekolah) ? 'terlambat' : 'hadir';
 
         // 4. Simpan ke Database
-        await pool.execute(
-            "INSERT INTO tabel_presensi (id_user, id_sekolah, tanggal, waktu_masuk, status) VALUES (?, ?, CURDATE(), CURTIME(), ?)",
+        await pool.query(
+            "INSERT INTO tabel_presensi (id_user, id_sekolah, tanggal, waktu_masuk, status) VALUES ($1, $2, CURDATE(), CURTIME(), $3)",
             [idUser, idSekolah, status]
         );
         
@@ -79,13 +79,13 @@ router.post('/pulang', async (req, res) => {
         const idSekolah = req.user.sekolahId;
 
         const [existing] = await pool.query(
-            "SELECT * FROM tabel_presensi WHERE id_user = ? AND tanggal = CURDATE()", [idUser]
+            "SELECT * FROM tabel_presensi WHERE id_user = $1 AND tanggal = CURDATE()", [idUser]
         );
         if (existing.length === 0) return res.status(400).json({ message: 'Anda belum presensi masuk.' });
         if (existing[0].waktu_pulang) return res.status(400).json({ message: 'Anda sudah presensi pulang.' });
 
         await pool.query(
-            "UPDATE tabel_presensi SET waktu_pulang = CURTIME() WHERE id_user = ? AND tanggal = CURDATE()",
+            "UPDATE tabel_presensi SET waktu_pulang = CURTIME() WHERE id_user = $1 AND tanggal = CURDATE()",
             [idUser]
         );
         
@@ -104,7 +104,7 @@ router.get('/riwayat', async (req, res) => {
         const { bulan, tahun } = req.query;
 
         const [riwayat] = await pool.query(
-            "SELECT tanggal, waktu_masuk, waktu_pulang, status AS status_kehadiran FROM tabel_presensi WHERE id_user = ? AND id_sekolah = ? AND MONTH(tanggal) = ? AND YEAR(tanggal) = ? ORDER BY tanggal DESC",
+            "SELECT tanggal, waktu_masuk, waktu_pulang, status AS status_kehadiran FROM tabel_presensi WHERE id_user = $1 AND id_sekolah = $2 AND MONTH(tanggal) = $3 AND YEAR(tanggal) = $4 ORDER BY tanggal DESC",
             [idUser, idSekolah, bulan, tahun]
         );
         res.json(riwayat);

@@ -25,7 +25,7 @@ router.get('/', async (req, res) => {
              FROM tabel_presensi p 
              JOIN tabel_user u ON p.id_user = u.id_user 
              LEFT JOIN tabel_guru g ON u.id_user = g.id_user -- << TAMBAHKAN JOIN ke tabel_guru
-             WHERE p.id_sekolah = ? AND p.tanggal BETWEEN ? AND ?
+             WHERE p.id_sekolah = $1 AND p.tanggal BETWEEN $2 AND $3
              ORDER BY u.nama_lengkap, p.tanggal`, 
             [idSekolah, mulai, selesai]
         );

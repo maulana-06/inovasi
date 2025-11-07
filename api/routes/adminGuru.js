@@ -20,7 +20,7 @@ router.get('/all-staff', async (req, res) => {
             LEFT JOIN 
                 tabel_guru g ON u.id_user = g.id_user 
             WHERE 
-                u.id_sekolah = ? AND (u.role = 'Admin' OR u.role = 'Guru')
+                u.id_sekolah = $1 AND (u.role = 'Admin' OR u.role = 'Guru')
             ORDER BY u.role, u.nama_lengkap`,
             [idSekolah]
         );
@@ -39,7 +39,7 @@ router.get('/', async (req, res) => {
         const [gurus] = await pool.query(
             `SELECT id_user, nama_lengkap, email, status, role 
              FROM tabel_user 
-             WHERE (role = 'Admin' OR role = 'Guru') AND id_sekolah = ?
+             WHERE (role = 'Admin' OR role = 'Guru') AND id_sekolah = $1
              ORDER BY role, nama_lengkap`, 
             [idSekolah]
         );
@@ -69,7 +69,7 @@ router.get('/:id_user', async (req, res) => {
             LEFT JOIN 
                 tabel_guru g ON u.id_user = g.id_user 
             WHERE 
-                u.id_user = ? AND u.id_sekolah = ? AND (u.role = 'Admin' OR u.role = 'Guru')`,
+                u.id_user = $1 AND u.id_sekolah = $2 AND (u.role = 'Admin' OR u.role = 'Guru')`,
             [id_user, idSekolah]
         );
 
@@ -88,7 +88,7 @@ router.get('/:id_user', async (req, res) => {
 // POST Menambahkan guru BARU (INSERT ke DUA tabel)
 // ================================================
 router.post('/', async (req, res) => {
-    const connection = await pool.getConnection(); // Ambil koneksi untuk transaksi
+    const connection = await pool.query(); // Ambil koneksi untuk transaksi
     try {
         await connection.beginTransaction(); // Mulai transaksi
 
@@ -104,7 +104,7 @@ router.post('/', async (req, res) => {
         const salt = await bcrypt.genSalt(10);
         const password_hash = await bcrypt.hash(password, salt);
         const [resultUser] = await connection.query(
-            "INSERT INTO tabel_user (id_sekolah, nama_lengkap, email, password_hash, status, role) VALUES (?, ?, ?, ?, ?, 'guru')",
+            "INSERT INTO tabel_user (id_sekolah, nama_lengkap, email, password_hash, status, role) VALUES ($1, $2, $3, $4, $5, 'guru')",
             [idSekolah, nama_lengkap, email, password_hash, status]
         );
         const newUserId = resultUser.insertId; // Dapatkan ID user yang baru dibuat
@@ -113,7 +113,7 @@ router.post('/', async (req, res) => {
         await connection.query(
             `INSERT INTO tabel_guru 
              (id_user, id_sekolah, nip_nipppk, jabatan, pendidikan, mulai_tugas, alamat, status_keluarga, nomor_telepon) 
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
             [newUserId, idSekolah, nip_nipppk, jabatan, pendidikan, mulai_tugas, alamat, status_keluarga, nomor_telepon]
         );
 
@@ -137,7 +137,7 @@ router.post('/', async (req, res) => {
 // PUT Mengupdate guru (UPDATE DUA tabel)
 // ================================================
 router.put('/:id_user', async (req, res) => {
-    const connection = await pool.getConnection();
+    const connection = await pool.query();
     try {
         await connection.beginTransaction();
 
@@ -152,7 +152,7 @@ router.put('/:id_user', async (req, res) => {
         
         // 1. UPDATE tabel_user
         await connection.query(
-            "UPDATE tabel_user SET nama_lengkap = ?, email = ?, status = ? WHERE id_user = ? AND id_sekolah = ?",
+            "UPDATE tabel_user SET nama_lengkap = $1, email = $2, status = $3 WHERE id_user = $4 AND id_sekolah = $5",
             [nama_lengkap, email, status, id_user, idSekolah]
         );
         
@@ -161,7 +161,7 @@ router.put('/:id_user', async (req, res) => {
         await connection.query(
             `INSERT INTO tabel_guru 
              (id_user, id_sekolah, nip_nipppk, jabatan, pendidikan, mulai_tugas, alamat, status_keluarga, nomor_telepon) 
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
              ON DUPLICATE KEY UPDATE 
              nip_nipppk=VALUES(nip_nipppk), jabatan=VALUES(jabatan), pendidikan=VALUES(pendidikan), 
              mulai_tugas=VALUES(mulai_tugas), alamat=VALUES(alamat), status_keluarga=VALUES(status_keluarga), 
@@ -184,8 +184,8 @@ router.put('/:id_user', async (req, res) => {
 // === RUTE BARU UNTUK HAPUS GURU ===
 // ================================================
 router.delete('/:id_user', async (req, res) => {
-    // Kita pakai transaksi untuk jaga-jaga jika CASCADE tidak aktif
-    const connection = await pool.getConnection(); 
+
+    const connection = await pool.query(); 
     try {
         await connection.beginTransaction();
 
@@ -199,14 +199,14 @@ router.delete('/:id_user', async (req, res) => {
         }
 
         // 1. Hapus dari tabel_guru (sebenarnya tidak perlu jika CASCADE aktif, tapi lebih aman)
-        await connection.query(
-            "DELETE FROM tabel_guru WHERE id_user = ? AND id_sekolah = ?",
+        await pool.query(
+            "DELETE FROM tabel_guru WHERE id_user = $1 AND id_sekolah = $2",
             [id_user, idSekolah]
         );
 
         // 2. Hapus dari tabel_user
-        const [resultUser] = await connection.query(
-            "DELETE FROM tabel_user WHERE id_user = ? AND role != 'Super Admin'", // Jangan hapus super admin
+        const [resultUser] = await pool.query(
+            "DELETE FROM tabel_user WHERE id_user = $1 AND role != 'Super Admin'", // Jangan hapus super admin
             [id_user]
         );
 
@@ -240,9 +240,9 @@ router.post('/reset-passwords', async (req, res) => {
         return res.status(403).json({ message: 'Akses ditolak.' });
     }
 
-    const connection = await pool.getConnection(); 
+    const connection = await pool.query(); 
     try {
-        await connection.beginTransaction(); // Mulai transaksi
+        await connection.beginTransaction(); 
 
         const idSekolah = req.user.sekolahId;
         
@@ -256,8 +256,8 @@ router.post('/reset-passwords', async (req, res) => {
         const passwordDefaultHash = await bcrypt.hash(passwordDefault, salt);
 
         // 3. Ambil SEMUA GURU (role='guru') di sekolah ini
-        const [gurus] = await connection.query(
-            "SELECT id_user, email, nama_lengkap FROM tabel_user WHERE id_sekolah = ? AND role = 'Guru'",
+        const [gurus] = await pool.query(
+            "SELECT id_user, email, nama_lengkap FROM tabel_user WHERE id_sekolah = $1 AND role = 'Guru'",
             [idSekolah]
         );
 
@@ -268,8 +268,8 @@ router.post('/reset-passwords', async (req, res) => {
         // 4. Loop dan UPDATE password setiap guru
         const updatePromises = gurus.map(guru => {
             console.log(`[Reset Pass] Mengupdate password untuk ${guru.email}`);
-            return connection.query(
-                "UPDATE tabel_user SET password_hash = ? WHERE id_user = ? AND id_sekolah = ?",
+            return pool.query(
+                "UPDATE tabel_user SET password_hash = $1 WHERE id_user = $2 AND id_sekolah = $3",
                 [passwordDefaultHash, guru.id_user, idSekolah]
             );
         });
@@ -290,7 +290,7 @@ router.post('/reset-passwords', async (req, res) => {
         });
 
     } catch (error) {
-        await connection.rollback(); // Gagal! Batalkan semua perubahan password
+        await connection.rollback(); // Jika gagal, batalkan semua perubahan password
         console.error("Error saat reset password massal:", error);
         res.status(500).json({ message: error.message || "Terjadi error pada server saat reset password." });
     } finally {

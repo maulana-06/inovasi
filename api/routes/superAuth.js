@@ -16,8 +16,8 @@ router.post('/login', async (req, res) => {
         }
 
         // Cari user berdasarkan email DAN role 'superadmin'
-        const [userRows] = await pool.execute(
-        "SELECT * FROM tabel_user WHERE email = ? AND role = 'Super Admin'", 
+        const [userRows] = await pool.query(
+        "SELECT * FROM tabel_user WHERE email = $1 AND role = 'Super Admin'", 
         [email]
         );
         const user = userRows[0];

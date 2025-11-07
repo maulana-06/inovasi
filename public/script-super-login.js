@@ -29,7 +29,7 @@ document.getElementById('super-login-form').addEventListener('submit', async (ev
 
         // Sukses? simpan token (gunakan nama berbeda, misal 'superAdminToken')
         localStorage.setItem('superAdminToken', data.token);
-        // (Opsional: Simpan juga info user jika backend mengirimnya)
+        // (Opsional: Simpan info user jika backend mengirim)
         localStorage.setItem('superAdminUser', JSON.stringify(data.user)); 
 
         // Redirect ke halaman manajemen sekolah

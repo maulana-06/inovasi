@@ -191,7 +191,7 @@ async function loadProfilData() {
             if (response.ok) {
                 pesanStatus.textContent = result.message;
                 pesanStatus.style.color = 'green';
-                gambarProfil.src = `/${result.filePath}?t=${new Date().getTime()}`;
+                gambarProfil.src = `/${result.filePath}$1t=${new Date().getTime()}`;
             } else {
                 throw new Error(result.message || 'Gagal mengupload foto.');
             }

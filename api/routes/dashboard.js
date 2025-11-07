@@ -11,33 +11,33 @@ router.get('/summary', auth, async (req, res) => {
         const idAdmin = req.user.userId; 
 
         // === AMBIL NAMA ADMIN DARI tabel_user ===
-        const [adminRows] = await pool.execute(
-            "SELECT nama_lengkap FROM tabel_user WHERE id_user = ?",
+        const [adminRows] = await pool.query(
+            "SELECT nama_lengkap FROM tabel_user WHERE id_user = $1",
             [idAdmin]
         );
         const namaAdmin = adminRows.length > 0 ? adminRows[0].nama_lengkap : "Admin Error";
         const namaSekolah = req.sekolah.nama_sekolah;
 
         // Query 1: Presensi (Gunakan execute)
-        const queryPresensi = 'SELECT COUNT(CASE WHEN status = \'hadir\' THEN 1 END) as total_hadir, COUNT(CASE WHEN status = \'terlambat\' THEN 1 END) as total_terlambat, COUNT(CASE WHEN status = \'izin\' OR status = \'sakit\' THEN 1 END) as total_izin_sakit FROM tabel_presensi WHERE tanggal = CURDATE() AND id_sekolah = ?;';
-        const [presensiSummary] = await pool.execute(queryPresensi, [idSekolah]); 
+        const queryPresensi = 'SELECT COUNT(CASE WHEN status = \'hadir\' THEN 1 END) as total_hadir, COUNT(CASE WHEN status = \'terlambat\' THEN 1 END) as total_terlambat, COUNT(CASE WHEN status = \'izin\' OR status = \'sakit\' THEN 1 END) as total_izin_sakit FROM tabel_presensi WHERE tanggal = CURDATE() AND id_sekolah = $1;';
+        const [presensiSummary] = await pool.query(queryPresensi, [idSekolah]); 
         console.log("Query Presensi BERHASIL."); 
 
         // Query 2: Total Staf (Gunakan execute dan nama variabel yang benar)
-        const queryTotalStaf = "SELECT COUNT(*) as total_aktif FROM tabel_user WHERE (role = 'Guru' OR role='Admin') AND id_sekolah = ? AND status = 'Aktif';";
+        const queryTotalStaf = "SELECT COUNT(*) as total_aktif FROM tabel_user WHERE (role = 'Guru' OR role='Admin') AND id_sekolah = $1 AND status = 'Aktif';";
         // [PERBAIKAN] Gunakan nama variabel 'totalStafRows'
-        const [totalStafRows] = await pool.execute(queryTotalStaf, [idSekolah]); 
-        console.log("pool.execute Total Staf BERHASIL. Hasil:", totalStafRows); 
+        const [totalStafRows] = await pool.query(queryTotalStaf, [idSekolah]); 
+        console.log("pool.query Total Staf BERHASIL. Hasil:", totalStafRows); 
         
         // Query 3: Aktivitas Terkini (Gunakan execute)
-        const queryAktivitas = `(SELECT u.nama_lengkap, p.waktu_masuk AS waktu_aksi, 'Presensi Masuk' AS jenis_aktivitas, p.status FROM tabel_presensi p JOIN tabel_user u ON p.id_user = u.id_user WHERE p.tanggal = CURDATE() AND p.waktu_masuk IS NOT NULL AND p.id_sekolah = ?) UNION ALL (SELECT u.nama_lengkap, p.waktu_pulang AS waktu_aksi, 'Presensi Pulang' AS jenis_aktivitas, 'Pulang' AS status FROM tabel_presensi p JOIN tabel_user u ON p.id_user = u.id_user WHERE p.tanggal = CURDATE() AND p.waktu_pulang IS NOT NULL AND p.id_sekolah = ?) ORDER BY waktu_aksi DESC LIMIT 5`;
-        // [PERBAIKAN] Gunakan pool.execute
-        const [aktivitasTerkini] = await pool.execute(queryAktivitas, [idSekolah, idSekolah]); 
+        const queryAktivitas = `(SELECT u.nama_lengkap, p.waktu_masuk AS waktu_aksi, 'Presensi Masuk' AS jenis_aktivitas, p.status FROM tabel_presensi p JOIN tabel_user u ON p.id_user = u.id_user WHERE p.tanggal = CURDATE() AND p.waktu_masuk IS NOT NULL AND p.id_sekolah = $1) UNION ALL (SELECT u.nama_lengkap, p.waktu_pulang AS waktu_aksi, 'Presensi Pulang' AS jenis_aktivitas, 'Pulang' AS status FROM tabel_presensi p JOIN tabel_user u ON p.id_user = u.id_user WHERE p.tanggal = CURDATE() AND p.waktu_pulang IS NOT NULL AND p.id_sekolah = $1) ORDER BY waktu_aksi DESC LIMIT 5`;
+        // [PERBAIKAN] Gunakan pool.query
+        const [aktivitasTerkini] = await pool.query(queryAktivitas, [idSekolah, idSekolah]); 
 
         // Query 4: Permintaan Izin (Gunakan execute)
-        const queryIzin = `SELECT u.nama_lengkap, i.tanggal_mulai, i.id_izin, i.jenis FROM tabel_izin i JOIN tabel_user u ON i.id_user = u.id_user WHERE i.status = 'Menunggu' AND i.id_sekolah = ? ORDER BY i.created_at DESC LIMIT 5`;
-        // [PERBAIKAN] Gunakan pool.execute
-        const [permintaanIzin] = await pool.execute(queryIzin, [idSekolah]);
+        const queryIzin = `SELECT u.nama_lengkap, i.tanggal_mulai, i.id_izin, i.jenis FROM tabel_izin i JOIN tabel_user u ON i.id_user = u.id_user WHERE i.status = 'Menunggu' AND i.id_sekolah = $1 ORDER BY i.created_at DESC LIMIT 5`;
+        // [PERBAIKAN] Gunakan pool.query
+        const [permintaanIzin] = await pool.query(queryIzin, [idSekolah]);
 
         // Kalkulasi (Gunakan totalStafRows)
         const hadir = (presensiSummary[0]?.total_hadir || 0) + (presensiSummary[0]?.total_terlambat || 0);

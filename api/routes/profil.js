@@ -31,8 +31,8 @@ router.get('/me', async (req, res) => {
         const idSekolah = req.user.sekolahId;
         
         // Query HANYA ke tabel_user
-        const [rows] = await pool.execute(
-            "SELECT id_user, nama_lengkap, email, role, status, foto_profil FROM tabel_user WHERE id_user = ? AND id_sekolah = ?",
+        const [rows] = await pool.query(
+            "SELECT id_user, nama_lengkap, email, role, status, foto_profil FROM tabel_user WHERE id_user = $1 AND id_sekolah = $2",
             [idUser, idSekolah]
         );
         
@@ -57,8 +57,8 @@ router.post('/foto', upload.single('fotoProfil'), async (req, res) => {
         // Path relatif ke folder 'public'
         const filePath = req.file.path.replace('public', '').replace(/\\/g, '/'); // Ganti backslash
 
-        await pool.execute( // Gunakan execute
-            "UPDATE tabel_user SET foto_profil = ? WHERE id_user = ? AND id_sekolah = ?",
+        await pool.query( // Gunakan execute
+            "UPDATE tabel_user SET foto_profil = $1 WHERE id_user = $2 AND id_sekolah = $3",
             [filePath, idUser, idSekolah]
         );
 
@@ -83,8 +83,8 @@ router.put('/password', async (req, res) => {
             return res.status(400).json({ message: 'Konfirmasi password baru tidak cocok.' });
         }
 
-        const [userRows] = await pool.execute( // Gunakan execute
-            "SELECT password_hash FROM tabel_user WHERE id_user = ?",
+        const [userRows] = await pool.query( // Gunakan execute
+            "SELECT password_hash FROM tabel_user WHERE id_user = $1",
             [idUser]
         );
         if (userRows.length === 0) return res.status(404).json({ message: 'User tidak ditemukan.' });
@@ -96,8 +96,8 @@ router.put('/password', async (req, res) => {
         const salt = await bcrypt.genSalt(10);
         const password_hash_baru = await bcrypt.hash(password_baru, salt);
 
-        await pool.execute( // Gunakan execute
-            "UPDATE tabel_user SET password_hash = ? WHERE id_user = ?",
+        await pool.query( // Gunakan execute
+            "UPDATE tabel_user SET password_hash = $1 WHERE id_user = $2",
             [password_hash_baru, idUser]
         );
 

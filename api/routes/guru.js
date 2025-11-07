@@ -31,13 +31,13 @@ router.get('/status', async (req, res) => {
         const idSekolah = req.user.sekolahId;
 
         const [profilRows] = await pool.query(
-            "SELECT nama_lengkap, email FROM tabel_user WHERE id_user = ? AND id_sekolah = ?",
+            "SELECT nama_lengkap, email FROM tabel_user WHERE id_user = $1 AND id_sekolah = $2",
             [idUser, idSekolah]
         );
         if (profilRows.length === 0) return res.status(404).json({ message: 'Profil tidak ditemukan.' });
 
         const [presensiRows] = await pool.query(
-            "SELECT waktu_masuk, waktu_pulang FROM tabel_presensi WHERE id_user = ? AND id_sekolah = ? AND tanggal = CURDATE()",
+            "SELECT waktu_masuk, waktu_pulang FROM tabel_presensi WHERE id_user = $1 AND id_sekolah = $2 AND tanggal = CURDATE()",
             [idUser, idSekolah]
         );
 
@@ -77,7 +77,7 @@ const [profilRows] = await pool.query(
             LEFT JOIN -- Pakai LEFT JOIN agar profil tetap tampil meskipun data di tabel_guru belum ada
                 tabel_guru g ON u.id_user = g.id_user 
             WHERE 
-                u.id_user = ? AND u.id_sekolah = ?`,
+                u.id_user = $1 AND u.id_sekolah = $2`,
             [idUser, idSekolah]
         );
         if (profilRows.length === 0) return res.status(404).json({ message: 'Profil tidak ditemukan.' });
@@ -88,8 +88,8 @@ const [profilRows] = await pool.query(
                 nama_lengkap: profilRows[0].nama_lengkap,
                 foto_profil: profilRows[0].foto_profil
             },
-            jabatan: profilRows[0].jabatan, // <-- Sudah dari tabel_guru
-            nip_nipppk: profilRows[0].nip_nipppk, // <-- Sudah dari tabel_guru
+            jabatan: profilRows[0].jabatan, 
+            nip_nipppk: profilRows[0].nip_nipppk, 
             status: profilRows[0].status
         });
 
@@ -116,7 +116,7 @@ router.post('/profil/foto', upload.single('fotoProfil'), async (req, res) => {
         const filePath = req.file.path.replace('public', ''); 
 
         await pool.query(
-            "UPDATE tabel_user SET foto_profil = ? WHERE id_user = ? AND id_sekolah = ?",
+            "UPDATE tabel_user SET foto_profil = $1 WHERE id_user = $2 AND id_sekolah = $3",
             [filePath, idUser, idSekolah]
         );
 
@@ -138,7 +138,7 @@ router.put('/profil/password', async (req, res) => {
         }
 
         const [userRows] = await pool.query(
-            "SELECT password_hash FROM tabel_user WHERE id_user = ?",
+            "SELECT password_hash FROM tabel_user WHERE id_user = $1",
             [idUser]
         );
         if (userRows.length === 0) return res.status(404).json({ message: 'User tidak ditemukan.' });
@@ -156,7 +156,7 @@ router.put('/profil/password', async (req, res) => {
         const password_hash_baru = await bcrypt.hash(password_baru, salt);
 
         await pool.query(
-            "UPDATE tabel_user SET password_hash = ? WHERE id_user = ?",
+            "UPDATE tabel_user SET password_hash = $1 WHERE id_user = $2",
             [password_hash_baru, idUser]
         );
 

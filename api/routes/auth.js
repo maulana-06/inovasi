@@ -13,8 +13,8 @@ router.post('/login', async (req, res) => {
     
     try {
         // 1. Cari User di tabel_user berdasarkan email dan id_sekolah
-        const [rows] = await pool.execute( 
-            'SELECT * FROM tabel_user WHERE email = ? AND id_sekolah = ?', 
+        const [rows] = await pool.query( 
+            'SELECT * FROM tabel_user WHERE email = $1 AND id_sekolah = $2', 
             [email, idSekolah] 
         );
         
@@ -24,8 +24,8 @@ router.post('/login', async (req, res) => {
             return res.status(401).json({ message: 'Email atau Password salah.' });
         }
 
-        const [schools] = await pool.execute(
-            "SELECT is_active, nama_sekolah FROM tabel_sekolah WHERE id_sekolah = ?",
+        const [schools] = await pool.query(
+            "SELECT is_active, nama_sekolah FROM tabel_sekolah WHERE id_sekolah = $1",
             [user.id_sekolah] 
         );
 

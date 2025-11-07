@@ -19,10 +19,10 @@ async function identifyTenant(req, res, next) {
     // 3. Cari sekolah (tenant) di database
     let connection;
     try {
-        connection = await pool.getConnection(); // <-- Menggunakan 'pool'
+        connection = await pool.query();
         
-        const [rows] = await connection.execute(
-            'SELECT * FROM tabel_sekolah WHERE subdomain = ?',
+        const [rows] = await pool.query(
+            'SELECT * FROM tabel_sekolah WHERE subdomain = $1',
             [subdomain]
         );
         
@@ -49,5 +49,4 @@ async function identifyTenant(req, res, next) {
     }
 }
 
-// Ekspor fungsi middleware
 module.exports = identifyTenant;

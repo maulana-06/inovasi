@@ -51,8 +51,8 @@ router.put('/schools/:id_sekolah/status', verifyToken, checkSuperAdmin, async (r
         }
 
         // Jalankan Query UPDATE
-        const [result] = await pool.execute(
-            `UPDATE tabel_sekolah SET is_active = ? WHERE id_sekolah = ?`,
+        const [result] = await pool.query(
+            `UPDATE tabel_sekolah SET is_active = $1 WHERE id_sekolah = $2`,
             [is_active, id_sekolah]
         );
         
@@ -75,12 +75,12 @@ router.put('/schools/:id_sekolah/status', verifyToken, checkSuperAdmin, async (r
 // Menghapus sekolah secara permanen
 // ================================================
 router.delete('/schools/:id_sekolah', verifyToken, checkSuperAdmin, async (req, res) => {
-    const connection = await pool.getConnection(); 
+    const connection = await pool.query(); 
     try {
         const { id_sekolah } = req.params;
 
-        const [statusCheck] = await connection.execute(
-            "SELECT is_active FROM tabel_sekolah WHERE id_sekolah = ?",
+        const [statusCheck] = await pool.query(
+            "SELECT is_active FROM tabel_sekolah WHERE id_sekolah = $1",
             [id_sekolah]
         );
 
@@ -97,14 +97,14 @@ router.delete('/schools/:id_sekolah', verifyToken, checkSuperAdmin, async (req, 
         await connection.beginTransaction();
 
         // Urutan: Hapus data Anak (Child) terlebih dahulu
-        await connection.execute("DELETE FROM tabel_user WHERE id_sekolah = ?", [id_sekolah]);
-        await connection.execute("DELETE FROM tabel_guru WHERE id_sekolah = ?", [id_sekolah]);
-        await connection.execute("DELETE FROM tabel_presensi WHERE id_sekolah = ?", [id_sekolah]);
-        await connection.execute("DELETE FROM tabel_izin WHERE id_sekolah = ?", [id_sekolah]);
-        await connection.execute("DELETE FROM tabel_pengumuman WHERE id_sekolah = ?", [id_sekolah]);
+        await connection.execute("DELETE FROM tabel_user WHERE id_sekolah = $1", [id_sekolah]);
+        await connection.execute("DELETE FROM tabel_guru WHERE id_sekolah = $2", [id_sekolah]);
+        await connection.execute("DELETE FROM tabel_presensi WHERE id_sekolah = $3", [id_sekolah]);
+        await connection.execute("DELETE FROM tabel_izin WHERE id_sekolah = $4", [id_sekolah]);
+        await connection.execute("DELETE FROM tabel_pengumuman WHERE id_sekolah = $5", [id_sekolah]);
         
-        const [result] = await connection.execute( 
-            "DELETE FROM tabel_sekolah WHERE id_sekolah = ?",
+        const [result] = await pool.query( 
+            "DELETE FROM tabel_sekolah WHERE id_sekolah = $1",
             [id_sekolah]
         );
 
@@ -134,11 +134,11 @@ router.get('/schools/:id_sekolah/detail', verifyToken, checkSuperAdmin, async (r
         const { id_sekolah } = req.params;
 
         // Query 1: Ambil data dasar sekolah dan pengaturan
-        const [schools] = await pool.execute(
+        const [schools] = await pool.query(
             `SELECT 
                 id_sekolah, nama_sekolah, subdomain, npsn, is_active, created_at,
                 latitude, longitude, radius_meter, jam_masuk, jam_pulang 
-             FROM tabel_sekolah WHERE id_sekolah = ?`,
+             FROM tabel_sekolah WHERE id_sekolah = $1`,
             [id_sekolah]
         );
 
@@ -148,8 +148,8 @@ router.get('/schools/:id_sekolah/detail', verifyToken, checkSuperAdmin, async (r
         const sekolahDetail = schools[0];
 
         // Query 2: Ambil semua user (Admin dan Guru) di sekolah ini
-        const [users] = await pool.execute(
-            "SELECT nama_lengkap, email, role, status FROM tabel_user WHERE id_sekolah = ? ORDER BY role DESC, nama_lengkap ASC",
+        const [users] = await pool.query(
+            "SELECT nama_lengkap, email, role, status FROM tabel_user WHERE id_sekolah = $1 ORDER BY role DESC, nama_lengkap ASC",
             [id_sekolah]
         );
 
