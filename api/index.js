@@ -62,7 +62,7 @@ let client; // Mengganti 'connection' menjadi 'client'
 
         // Simpan ke tabel_sekolah (Gunakan client.query())
         const sekolahResult = await client.query(
-            'INSERT INTO tabel_sekolah (npsn, subdomain, nama_sekolah) VALUES ($1, $2, $3) RETURNING id_sekolah', // Tambahkan RETURNING
+            'INSERT INTO tabel_sekolah (npsn, subdomain, nama_sekolah) VALUES ($1, $2, $3) RETURNING id_sekolah', 
             [npsn, subdomain, nama_sekolah]
         );
         

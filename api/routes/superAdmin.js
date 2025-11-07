@@ -75,7 +75,7 @@ router.put('/schools/:id_sekolah/status', verifyToken, checkSuperAdmin, async (r
 // Menghapus sekolah secara permanen
 // ================================================
 router.delete('/schools/:id_sekolah', verifyToken, checkSuperAdmin, async (req, res) => {
-    const connection = await pool.query(); 
+    const client = await pool.connect(); 
     try {
         const { id_sekolah } = req.params;
 
@@ -94,7 +94,7 @@ router.delete('/schools/:id_sekolah', verifyToken, checkSuperAdmin, async (req, 
         // ==========================================================
         // 2. KRITIS: HAPUS BERANTAI (CASCADING DELETE) DENGAN TRANSACTION
         // ==========================================================
-        await connection.beginTransaction();
+        await client.query('BEGIN');
 
         // Urutan: Hapus data Anak (Child) terlebih dahulu
         await connection.execute("DELETE FROM tabel_user WHERE id_sekolah = $1", [id_sekolah]);
@@ -108,7 +108,7 @@ router.delete('/schools/:id_sekolah', verifyToken, checkSuperAdmin, async (req, 
             [id_sekolah]
         );
 
-        await connection.commit(); // Jika semua sukses, commit perubahan
+        await client.query('COMMIT'); // Jika semua sukses, commit perubahan
         // ==========================================================
 
         if (result.affectedRows === 0) {

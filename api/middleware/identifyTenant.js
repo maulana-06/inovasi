@@ -19,7 +19,7 @@ async function identifyTenant(req, res, next) {
     // 3. Cari sekolah (tenant) di database
     let connection;
     try {
-        connection = await pool.query();
+        client = await pool.connect();
         
         const [rows] = await pool.query(
             'SELECT * FROM tabel_sekolah WHERE subdomain = $1',

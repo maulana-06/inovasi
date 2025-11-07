@@ -88,9 +88,9 @@ router.get('/:id_user', async (req, res) => {
 // POST Menambahkan guru BARU (INSERT ke DUA tabel)
 // ================================================
 router.post('/', async (req, res) => {
-    const connection = await pool.query(); // Ambil koneksi untuk transaksi
+    const client = await pool.connect(); // Ambil koneksi untuk transaksi
     try {
-        await connection.beginTransaction(); // Mulai transaksi
+        await client.query('BEGIN'); // Mulai transaksi
 
         const idSekolah = req.user.sekolahId; 
         
@@ -117,7 +117,7 @@ router.post('/', async (req, res) => {
             [newUserId, idSekolah, nip_nipppk, jabatan, pendidikan, mulai_tugas, alamat, status_keluarga, nomor_telepon]
         );
 
-        await connection.commit(); // Sukses! Simpan kedua INSERT
+        await client.query('COMMIT'); // Sukses! Simpan kedua INSERT
         res.status(201).json({ message: 'Guru berhasil ditambahkan', id_user_baru: newUserId });
 
     } catch (error) {
@@ -129,7 +129,7 @@ router.post('/', async (req, res) => {
             res.status(500).json({ message: "Terjadi error pada server." });
         }
     } finally {
-        connection.release(); // Selalu lepaskan koneksi
+        connection.release(); 
     }
 });
 
@@ -137,9 +137,9 @@ router.post('/', async (req, res) => {
 // PUT Mengupdate guru (UPDATE DUA tabel)
 // ================================================
 router.put('/:id_user', async (req, res) => {
-    const connection = await pool.query();
+    const client = await pool.connect();
     try {
-        await connection.beginTransaction();
+        await client.query('BEGIN');
 
         const idSekolah = req.user.sekolahId; 
         const { id_user } = req.params;
@@ -169,7 +169,7 @@ router.put('/:id_user', async (req, res) => {
             [id_user, idSekolah, nip_nipppk, jabatan, pendidikan, mulai_tugas, alamat, status_keluarga, nomor_telepon]
         );
         
-        await connection.commit();
+        await client.query('COMMIT');
         res.status(200).json({ message: 'Data guru berhasil diperbarui' });
 
     } catch (error) {
@@ -185,9 +185,9 @@ router.put('/:id_user', async (req, res) => {
 // ================================================
 router.delete('/:id_user', async (req, res) => {
 
-    const connection = await pool.query(); 
+    const client = await pool.connect(); 
     try {
-        await connection.beginTransaction();
+        await client.query('BEGIN');
 
         const idSekolah = req.user.sekolahId;
         const idAdminYangLogin = req.user.userId; // Dapatkan ID admin yang menghapus
@@ -215,7 +215,7 @@ router.delete('/:id_user', async (req, res) => {
              throw new Error("Guru tidak ditemukan atau Anda tidak berhak menghapusnya.");
         }
 
-        await connection.commit(); // Sukses! Hapus permanen
+        await client.query('COMMIT'); // Sukses! Hapus permanen
         res.status(200).json({ message: 'Guru berhasil dihapus secara permanen.' });
 
     } catch (error) {
@@ -240,9 +240,9 @@ router.post('/reset-passwords', async (req, res) => {
         return res.status(403).json({ message: 'Akses ditolak.' });
     }
 
-    const connection = await pool.query(); 
+    const client = await pool.connect(); 
     try {
-        await connection.beginTransaction(); 
+        await client.query('BEGIN'); 
 
         const idSekolah = req.user.sekolahId;
         
@@ -275,7 +275,7 @@ router.post('/reset-passwords', async (req, res) => {
         });
         await Promise.all(updatePromises); // Tunggu semua update selesai
 
-        await connection.commit(); // Sukses! Simpan semua perubahan password
+        await client.query('COMMIT'); // Sukses! Simpan semua perubahan password
 
         // 5. Siapkan data kredensial untuk ditampilkan di frontend
         const kredensialAwal = gurus.map(guru => ({
