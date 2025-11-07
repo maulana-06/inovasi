@@ -122,6 +122,7 @@ app.use(identifyTenant);
 const auth = require('./middleware/auth');
 
 app.get('/', (req, res) => {
+    res.send('API Utama Berjalan!');
     if (req.isMainDomain) {
         // Jika ini domain utama (localhost:8080), kirim landing page
         res.sendFile(path.join(__dirname, 'public', 'index.html'));
@@ -166,9 +167,7 @@ app.use('/api/profil', auth, profilRoutes);
 app.use('/api/superadmin', auth, checkSuperAdmin, superAdminRoutes);
 app.use('/api/superAuth', superAuthRoutes);
 
-const PORT = process.env.PORT || 8080; 
-app.listen(PORT, '0.0.0.0', () => {
-console.log(`Server berjalan di port ${PORT}`);
+app.get('/api', (req, res) => {
+  res.status(200).send('API is running successfully on Vercel!');
 });
-
 module.exports = app;
