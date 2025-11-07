@@ -124,9 +124,9 @@ app.get('/', (req, res) => {
     res.send('API Utama Berjalan!');
     if (req.isMainDomain) {
         // Jika ini domain utama (localhost:8080), kirim landing page
-        res.sendFile(path.join(__dirname, 'public', 'index.html'));
+        res.sendFile(path.join(__dirname, 'public', '/index.html'));
     } else {
-        res.redirect('/login.html');
+        res.redirect('./login.html');
     }
 });
 // =============================================================
