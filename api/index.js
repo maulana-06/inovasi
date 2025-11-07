@@ -23,8 +23,7 @@ app.get('/daftar', (req, res) => {
     res.sendFile(path.join(__dirname, 'daftar.html')); 
 });
 
-app.post('/daftar', async (req, res) => {
-    
+app.post('/daftar', async (req, res) => {    
     // (Tambahkan console.log untuk cek)
     console.log('Menerima data pendaftaran:', req.body.nama_sekolah);
 
@@ -43,65 +42,56 @@ app.post('/daftar', async (req, res) => {
     const password_hash = await bcrypt.hash(password_admin, salt);
 
     // 4. Mulai Transaksi Database
-    let connection;
+let client; // Mengganti 'connection' menjadi 'client'
     try {
         console.log('Mencoba koneksi ke DB...');
-        connection = await pool.query(); 
+        // 1. Ambil client dari pool
+        client = await pool.connect(); 
         console.log('Koneksi DB berhasil.');
         
-        await connection.beginTransaction(); 
+        // 2. Mulai Transaksi PostgreSQL
+        await client.query('BEGIN'); 
 
-        // --- Validasi Keunikan (Sangat Penting!) ---
-        const [npsnRows] = await pool.query(
+        // 3. Query: Gunakan client.query() dan cek result.rows.length
+        const npsnResult = await client.query(
             'SELECT npsn FROM tabel_sekolah WHERE npsn = $1', [npsn]
         );
-        if (npsnRows.length > 0) {
+        if (npsnResult.rows.length > 0) { // Cek result.rows.length
             throw new Error('NPSN sudah terdaftar.');
         }
 
-        const [subdomainRows] = await pool.query(
-            'SELECT subdomain FROM tabel_sekolah WHERE subdomain = $1', [subdomain]
-        );
-        if (subdomainRows.length > 0) {
-            throw new Error('Subdomain sudah digunakan. Pilih nama lain.');
-        }
-        
-        const [emailRows] = await pool.query(
-            'SELECT email FROM tabel_user WHERE email = $1', [email_admin]
-        );
-        if (emailRows.length > 0) {
-            throw new Error('Email admin sudah terdaftar.');
-        }
-
-        // Simpan ke tabel_sekolah ---
-        const [sekolahResult] = await pool.query(
-            'INSERT INTO tabel_sekolah (npsn, subdomain, nama_sekolah) VALUES ($1, $2, $3)',
+        // Simpan ke tabel_sekolah (Gunakan client.query())
+        const sekolahResult = await client.query(
+            'INSERT INTO tabel_sekolah (npsn, subdomain, nama_sekolah) VALUES ($1, $2, $3) RETURNING id_sekolah', // Tambahkan RETURNING
             [npsn, subdomain, nama_sekolah]
         );
         
-        const newSekolahId = sekolahResult.insertId; 
+        // 4. Ambil ID yang di-generate dari PostgreSQL
+        const newSekolahId = sekolahResult.rows[0].id_sekolah; // Ambil ID dari result.rows
 
-        // Simpan ke tabel_user ---
-        await pool.query(
+        // Simpan ke tabel_user
+        await client.query(
             'INSERT INTO tabel_user (id_sekolah, email, password_hash, nama_lengkap, role) VALUES ($1, $2, $3, $4, $5)',
             [newSekolahId, email_admin, password_hash, nama_admin, 'Admin']
         );
 
-        await connection.commit(); 
+        // 5. Commit Transaksi
+        await client.query('COMMIT'); 
         console.log('Pendaftaran BERHASIL.');
-        // Arahkan pengguna ke halaman sukses !
         res.redirect(`/daftar-sukses.html$1subdomain=${subdomain}`);
 
     } catch (error) {
-        // --- TAMBAHKAN INI UNTUK MELIHAT ERROR APA YANG TERJADI ---
-        console.error("ERROR REGISTRASI SEKOLAH:", error); 
+        // 6. Rollback jika ada error
+        if (client) {
+            await client.query('ROLLBACK');
+        }
+        console.error("ERROR REGISTRASI SEKOLAH:", error.message);
         // Jika error terkait duplikasi, beri pesan 400 yang lebih jelas
         if (error.code === 'ER_DUP_ENTRY') {
              return res.status(400).send('Subdomain atau Email Admin sudah terdaftar.');
         }
         // Jika error lainnya (misal error koneksi, query, dll)
-        return res.status(500).send('Terjadi error server. Cek log konsol.'); 
-        if (error.message.includes('NPSN') || error.message.includes('Subdomain') || error.message.includes('Email')) {
+        if (error.message.includes('npsn') || error.message.includes('Subdomain') || error.message.includes('Email')) {
              res.status(400).send(error.message);
         } else {
              res.status(500).send('Terjadi kesalahan pada server. Coba lagi nanti.');
@@ -116,9 +106,9 @@ app.post('/daftar', async (req, res) => {
 
 // =============================================================
 // [PERBAIKAN, "Satpam" aktif SETELAH rute publik
-const identifyTenant = require('/middleware/identifyTenant'); 
+const identifyTenant = require('../middleware/identifyTenant'); 
 app.use(identifyTenant); 
-const auth = require('/middleware/auth');
+const auth = require('../middleware/auth'); 
 
 app.get('/', (req, res) => {
     res.send('API Utama Berjalan!');
