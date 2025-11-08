@@ -24,7 +24,7 @@ app.get('/daftar', (req, res) => {
 });
 
 app.post('/daftar', async (req, res) => {    
-    // (Tambahkan console.log untuk cek)
+
     console.log('Menerima data pendaftaran:', req.body.nama_sekolah);
 
     const { 
@@ -42,17 +42,17 @@ app.post('/daftar', async (req, res) => {
     const password_hash = await bcrypt.hash(password_admin, salt);
 
     // 4. Mulai Transaksi Database
-    let client; // Mengganti 'connection' menjadi 'client'
+let client; // Ganti 'connection' menjadi 'client'
     try {
         console.log('Mencoba koneksi ke DB...');
-        // 1. Ambil client dari pool
+        // 1. Ambil client dari pool (pg syntax)
         client = await pool.connect(); 
         console.log('Koneksi DB berhasil.');
         
         // 2. Mulai Transaksi PostgreSQL
         await client.query('BEGIN'); 
 
-        // 3. Query: Gunakan client.query() dan cek result.rows.length
+        // --- Validasi Keunikan (Gunakan client.query() dan cek result.rows.length) ---
         const npsnResult = await client.query(
             'SELECT npsn FROM tabel_sekolah WHERE npsn = $1', [npsn]
         );
@@ -60,45 +60,54 @@ app.post('/daftar', async (req, res) => {
             throw new Error('NPSN sudah terdaftar.');
         }
 
-        // Simpan ke tabel_sekolah (Gunakan client.query())
+        const subdomainResult = await client.query(
+            'SELECT subdomain FROM tabel_sekolah WHERE subdomain = $1', [subdomain]
+        );
+        if (subdomainResult.rows.length > 0) {
+            throw new Error('Subdomain sudah digunakan. Pilih nama lain.');
+        }
+        
+        const emailResult = await client.query(
+            'SELECT email FROM tabel_user WHERE email = $1', [email_admin]
+        );
+        if (emailResult.rows.length > 0) {
+            throw new Error('Email admin sudah terdaftar.');
+        }
+
+        // Simpan ke tabel_sekolah (Gunakan client.query() dengan RETURNING)
         const sekolahResult = await client.query(
-            'INSERT INTO tabel_sekolah (npsn, subdomain, nama_sekolah) VALUES ($1, $2, $3) RETURNING id_sekolah', 
+            'INSERT INTO tabel_sekolah (npsn, subdomain, nama_sekolah) VALUES ($1, $2, $3) RETURNING id_sekolah', // RETURNING ID
             [npsn, subdomain, nama_sekolah]
         );
         
-        // 4. Ambil ID yang di-generate dari PostgreSQL
+        // 3. Ambil ID yang di-generate dari PostgreSQL
         const newSekolahId = sekolahResult.rows[0].id_sekolah; // Ambil ID dari result.rows
 
-        // Simpan ke tabel_user
+        // Simpan ke tabel_user (Gunakan client.query())
         await client.query(
             'INSERT INTO tabel_user (id_sekolah, email, password_hash, nama_lengkap, role) VALUES ($1, $2, $3, $4, $5)',
             [newSekolahId, email_admin, password_hash, nama_admin, 'Admin']
         );
 
-        // 5. Commit Transaksi
+        // 4. Commit Transaksi
         await client.query('COMMIT'); 
         console.log('Pendaftaran BERHASIL.');
         res.redirect(`/daftar-sukses.html$1subdomain=${subdomain}`);
 
     } catch (error) {
-        // 6. Rollback jika ada error
+        // 5. Rollback jika ada error
         if (client) {
             await client.query('ROLLBACK');
         }
         console.error("ERROR REGISTRASI SEKOLAH:", error.message);
-        // Jika error terkait duplikasi, beri pesan 400 yang lebih jelas
-        if (error.code === 'ER_DUP_ENTRY') {
-             return res.status(400).send('Subdomain atau Email Admin sudah terdaftar.');
-        }
-        // Jika error lainnya (misal error koneksi, query, dll)
-        if (error.message.includes('npsn') || error.message.includes('Subdomain') || error.message.includes('Email')) {
-             res.status(400).send(error.message);
-        } else {
-             res.status(500).send('Terjadi kesalahan pada server. Coba lagi nanti.');
-        }
+        // ... (sisanya logic error Anda) ...
+        return res.status(500).send('Terjadi kesalahan pada server. Coba lagi nanti.');
 
     } finally {
-        if (client) { client.release(); }
+        // 6. Release client
+        if (client) {
+            client.release(); 
+        }
     }
 });
 
