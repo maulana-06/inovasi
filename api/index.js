@@ -81,7 +81,7 @@ let client; // Ganti 'connection' menjadi 'client'
         );
         
         // 3. Ambil ID yang di-generate dari PostgreSQL
-        const newSekolahId = sekolahResult.result.rows[0].id_sekolah; // Ambil ID dari result.rows
+        const newSekolahId = sekolah.rows[0].id_sekolah; // Ambil ID dari result.rows
 
         // Simpan ke tabel_user (Gunakan client.query())
         await client.query(
