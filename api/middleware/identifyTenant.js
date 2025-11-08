@@ -45,7 +45,7 @@ async function identifyTenant(req, res, next) {
         console.error('Error di middleware identifyTenant:', error);
         return res.status(500).json({ message: 'Terjadi kesalahan pada server' });
     } finally {
-        if (connection) connection.release(); // Selalu lepaskan koneksi
+        if (client) { client.release(); }
     }
 }
 

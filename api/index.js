@@ -42,7 +42,7 @@ app.post('/daftar', async (req, res) => {
     const password_hash = await bcrypt.hash(password_admin, salt);
 
     // 4. Mulai Transaksi Database
-let client; // Mengganti 'connection' menjadi 'client'
+    let client; // Mengganti 'connection' menjadi 'client'
     try {
         console.log('Mencoba koneksi ke DB...');
         // 1. Ambil client dari pool
@@ -98,17 +98,15 @@ let client; // Mengganti 'connection' menjadi 'client'
         }
 
     } finally {
-        if (connection) {
-            connection.release(); 
-        }
+        if (client) { client.release(); }
     }
 });
 
 // =============================================================
 // [PERBAIKAN, "Satpam" aktif SETELAH rute publik
-const identifyTenant = require('../middleware/identifyTenant'); 
+const identifyTenant = require('./middleware/identifyTenant'); 
 app.use(identifyTenant); 
-const auth = require('../middleware/auth'); 
+const auth = require('./middleware/auth'); 
 
 app.get('/', (req, res) => {
     res.send('API Utama Berjalan!');

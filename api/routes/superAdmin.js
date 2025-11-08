@@ -122,7 +122,7 @@ router.delete('/schools/:id_sekolah', verifyToken, checkSuperAdmin, async (req, 
         console.error("Error menghapus sekolah (Super Admin):", error);
         res.status(500).json({ message: "Terjadi error pada server saat menghapus sekolah. Transaksi dibatalkan." });
     } finally {
-        if (connection) connection.release();
+        if (client) {client.release();}
     }
 });
 // ================================================\

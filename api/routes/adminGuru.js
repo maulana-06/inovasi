@@ -129,7 +129,7 @@ router.post('/', async (req, res) => {
             res.status(500).json({ message: "Terjadi error pada server." });
         }
     } finally {
-        connection.release(); 
+        client.release(); 
     }
 });
 
@@ -177,7 +177,7 @@ router.put('/:id_user', async (req, res) => {
         console.error("Error update guru:", error);
         res.status(500).json({ message: "Terjadi error pada server." });
     } finally {
-        connection.release();
+        client.release();
     }
 });
 // ================================================
@@ -228,7 +228,7 @@ router.delete('/:id_user', async (req, res) => {
             res.status(500).json({ message: "Terjadi error pada server saat menghapus." });
         }
     } finally {
-        connection.release(); // Selalu lepaskan koneksi
+        client.release();
     }
 });
 // ================================================
@@ -294,7 +294,7 @@ router.post('/reset-passwords', async (req, res) => {
         console.error("Error saat reset password massal:", error);
         res.status(500).json({ message: error.message || "Terjadi error pada server saat reset password." });
     } finally {
-        connection.release(); 
+        client.release();
     }
 });
 module.exports = router;

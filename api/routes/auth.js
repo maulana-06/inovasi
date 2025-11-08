@@ -1,4 +1,4 @@
-// File: /ABSENSI/routes/auth.js
+// File: routes/auth.js
 
 const express = require('express');
 const bcrypt = require('bcryptjs');
@@ -62,7 +62,6 @@ router.post('/login', async (req, res) => {
                 sekolahId: user.id_sekolah,
                 role: user.role,
                 nama_lengkap: user.nama_lengkap
-                // Tambahkan data user lain yang relevan
             }
         });
 
