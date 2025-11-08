@@ -20,7 +20,7 @@ router.get('/', async (req, res) => {
             return res.status(404).json({ message: "Data sekolah tidak ditemukan." });
         }
         
-        res.status(200).json(rows[0]); // Kirim objek pengaturan
+        res.status(200).json(result.rows[0]); // Kirim objek pengaturan
     } catch (error) {
         console.error("Error mengambil pengaturan:", error);
         res.status(500).json({ message: "Terjadi error pada server." });

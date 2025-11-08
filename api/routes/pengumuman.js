@@ -22,7 +22,7 @@ router.get('/terbaru', async (req, res) => {
         );
         
         if (rows.length > 0) {
-            res.json(rows[0]); // Kirim { isi_pengumuman: "..." }
+            res.json(result.rows[0]); // Kirim { isi_pengumuman: "..." }
         } else {
             res.json({ isi_pengumuman: "" }); // Kirim kosong jika tidak ada
         }

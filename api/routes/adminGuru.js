@@ -76,7 +76,7 @@ router.get('/:id_user', async (req, res) => {
         if (rows.length === 0) {
             return res.status(404).json({ message: "Data guru tidak ditemukan." });
         }
-        res.status(200).json(rows[0]);
+        res.status(200).json(result.rows[0]);
 
     } catch (error) {
         console.error("Error mengambil detail guru:", error);

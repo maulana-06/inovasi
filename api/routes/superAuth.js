@@ -20,7 +20,7 @@ router.post('/login', async (req, res) => {
         "SELECT * FROM tabel_user WHERE email = $1 AND role = 'Super Admin'", 
         [email]
         );
-        const user = userRows[0];
+        const user = userresult.rows[0];
         console.log("Login dengan email:", email);
         if (!user) {
             return res.status(401).json({ error: "Email dan Password salah !" });

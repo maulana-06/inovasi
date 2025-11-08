@@ -18,7 +18,7 @@ router.post('/login', async (req, res) => {
             [email, idSekolah] 
         );
         
-        const user = rows[0]; 
+        const user = result.rows[0]; 
         
         if (!user) { 
             return res.status(401).json({ message: 'Email atau Password salah.' });

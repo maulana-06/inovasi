@@ -38,7 +38,7 @@ router.get('/me', async (req, res) => {
         
         if (rows.length === 0) return res.status(404).json({ message: 'Profil tidak ditemukan.' });
         
-        res.json(rows[0]); // Kirim data user
+        res.json(result.rows[0]); // Kirim data user
 
     } catch (error) {
         console.error("Error di GET /api/profil/me:", error);
@@ -88,7 +88,7 @@ router.put('/password', async (req, res) => {
             [idUser]
         );
         if (userRows.length === 0) return res.status(404).json({ message: 'User tidak ditemukan.' });
-        const user = userRows[0];
+        const user = userresult.rows[0];
 
         const isMatch = await bcrypt.compare(password_lama, user.password_hash);
         if (!isMatch) return res.status(400).json({ message: 'Password lama salah.' });

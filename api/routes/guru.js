@@ -43,17 +43,17 @@ router.get('/status', async (req, res) => {
 
         let status_presensi = {};
         if (presensiRows.length === 0) status_presensi.kondisi = 'BELUM_MASUK';
-        else if (presensiRows[0].waktu_masuk && !presensiRows[0].waktu_pulang) {
+        else if (presensiresult.rows[0].waktu_masuk && !presensiresult.rows[0].waktu_pulang) {
             status_presensi.kondisi = 'SUDAH_MASUK';
-            status_presensi.jam_masuk = presensiRows[0].waktu_masuk;
+            status_presensi.jam_masuk = presensiresult.rows[0].waktu_masuk;
         } else {
             status_presensi.kondisi = 'SUDAH_PULANG';
-            status_presensi.jam_masuk = presensiRows[0].waktu_masuk;
-            status_presensi.jam_pulang = presensiRows[0].waktu_pulang;
+            status_presensi.jam_masuk = presensiresult.rows[0].waktu_masuk;
+            status_presensi.jam_pulang = presensiresult.rows[0].waktu_pulang;
         }
 
         res.json({
-            profil: profilRows[0],
+            profil: profilresult.rows[0],
             status_presensi: status_presensi
         });
     } catch (error) { res.status(500).json({ message: "Server error di /status" }); }
@@ -82,15 +82,15 @@ const [profilRows] = await pool.query(
         );
         if (profilRows.length === 0) return res.status(404).json({ message: 'Profil tidak ditemukan.' });
         
-        // Kirim data BARU (semua ada di profilRows[0])
+        // Kirim data BARU (semua ada di profilresult.rows[0])
         res.json({
             profil: {
-                nama_lengkap: profilRows[0].nama_lengkap,
-                foto_profil: profilRows[0].foto_profil
+                nama_lengkap: profilresult.rows[0].nama_lengkap,
+                foto_profil: profilresult.rows[0].foto_profil
             },
-            jabatan: profilRows[0].jabatan, 
-            nip_nipppk: profilRows[0].nip_nipppk, 
-            status: profilRows[0].status
+            jabatan: profilresult.rows[0].jabatan, 
+            nip_nipppk: profilresult.rows[0].nip_nipppk, 
+            status: profilresult.rows[0].status
         });
 
     } catch (error) {
@@ -143,7 +143,7 @@ router.put('/profil/password', async (req, res) => {
         );
         if (userRows.length === 0) return res.status(404).json({ message: 'User tidak ditemukan.' });
 
-        const user = userRows[0];
+        const user = userresult.rows[0];
 
         // Cek password lama
         const isMatch = await bcrypt.compare(password_lama, user.password_hash);

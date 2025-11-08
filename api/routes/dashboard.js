@@ -15,7 +15,7 @@ router.get('/summary', auth, async (req, res) => {
             "SELECT nama_lengkap FROM tabel_user WHERE id_user = $1",
             [idAdmin]
         );
-        const namaAdmin = adminRows.length > 0 ? adminRows[0].nama_lengkap : "Admin Error";
+        const namaAdmin = adminRows.length > 0 ? adminresult.rows[0].nama_lengkap : "Admin Error";
         const namaSekolah = req.sekolah.nama_sekolah;
 
         // Query 1: Presensi (Gunakan execute)
@@ -42,7 +42,7 @@ router.get('/summary', auth, async (req, res) => {
         // Kalkulasi (Gunakan totalStafRows)
         const hadir = (presensiSummary[0]?.total_hadir || 0) + (presensiSummary[0]?.total_terlambat || 0);
         const izin_sakit = presensiSummary[0]?.total_izin_sakit || 0;
-        const total_aktif = totalStafRows[0]?.total_aktif || 0; 
+        const total_aktif = totalStafresult.rows[0]?.total_aktif || 0; 
         const belum_ada_kabar = total_aktif - hadir - izin_sakit;
 
         const responseData = {

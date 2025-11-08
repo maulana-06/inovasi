@@ -81,7 +81,7 @@ let client; // Ganti 'connection' menjadi 'client'
         );
         
         // 3. Ambil ID yang di-generate dari PostgreSQL
-        const newSekolahId = sekolahResult.rows[0].id_sekolah; // Ambil ID dari result.rows
+        const newSekolahId = sekolahResult.result.rows[0].id_sekolah; // Ambil ID dari result.rows
 
         // Simpan ke tabel_user (Gunakan client.query())
         await client.query(
@@ -116,11 +116,12 @@ let client; // Ganti 'connection' menjadi 'client'
 const identifyTenant = require('./middleware/identifyTenant'); 
 app.use(identifyTenant); 
 const auth = require('./middleware/auth'); 
+const checkSuperAdmin = require('./middleware/checkSuperAdmin'); 
 
-app.get('/', (req, res) => {
-    res.send('API Utama Berjalan!');
+app.get('/api', (req, res) => {
+  res.status(200).send('API is running successfully on Vercel!');
     if (req.isMainDomain) {
-        // Jika ini domain utama (localhost:8080), kirim landing page
+
         res.sendFile(path.join(__dirname, 'public', 'index.html'));
     } else {
         res.redirect('login.html');

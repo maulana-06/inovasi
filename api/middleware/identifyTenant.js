@@ -30,7 +30,7 @@ async function identifyTenant(req, res, next) {
             // 4. DITEMUKAN! Tempelkan info sekolah ke 'req'
             // Inilah "stiker" ajaib kita.
             // Semua rute API nanti bisa mengakses 'req.sekolah.id_sekolah', dll.
-            req.sekolah = rows[0]; 
+            req.sekolah = result.rows[0]; 
             req.isMainDomain = false;
             
             return next(); // Lanjutkan ke rute berikutnya (misal: /api/auth/login)

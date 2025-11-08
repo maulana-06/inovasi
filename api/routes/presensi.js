@@ -29,7 +29,7 @@ router.post('/masuk', async (req, res) => {
             [idSekolah]
         );
 
-        const pengaturanSekolah = rows[0];        
+        const pengaturanSekolah = result.rows[0];        
         const latSekolah = Number(pengaturanSekolah.latitude);
         const lonSekolah = Number(pengaturanSekolah.longitude);
         const radiusMeter = Number(pengaturanSekolah.radius_meter);
