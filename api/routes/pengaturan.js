@@ -11,7 +11,7 @@ router.get('/', async (req, res) => {
         const idSekolah = req.user.sekolahId; 
 
         // ATURAN 3: Ambil data
-        const [rows] = await pool.query(
+        result.rows = await pool.query(
             "SELECT latitude, longitude, jam_masuk, jam_pulang, radius_meter FROM tabel_sekolah WHERE id_sekolah = $1",
             [idSekolah]
         );

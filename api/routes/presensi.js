@@ -19,7 +19,7 @@ router.post('/masuk', async (req, res) => {
     try {
         const idUser = req.user.userId;
         const idSekolah = req.user.sekolahId;
-        const [rows] = await pool.query(
+        result.rows = await pool.query(
             `SELECT 
                 latitude,             
                 longitude,            

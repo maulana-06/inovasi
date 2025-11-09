@@ -31,7 +31,7 @@ router.get('/me', async (req, res) => {
         const idSekolah = req.user.sekolahId;
         
         // Query HANYA ke tabel_user
-        const [rows] = await pool.query(
+        result.rows = await pool.query(
             "SELECT id_user, nama_lengkap, email, role, status, foto_profil FROM tabel_user WHERE id_user = $1 AND id_sekolah = $2",
             [idUser, idSekolah]
         );

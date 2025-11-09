@@ -13,7 +13,7 @@ router.post('/login', async (req, res) => {
     
     try {
         // 1. Cari User di tabel_user berdasarkan email dan id_sekolah
-        const [rows] = await pool.query( 
+        result.rows = await pool.query( 
             'SELECT * FROM tabel_user WHERE email = $1 AND id_sekolah = $2', 
             [email, idSekolah] 
         );

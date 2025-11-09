@@ -56,7 +56,7 @@ router.put('/schools/:id_sekolah/status', verifyToken, checkSuperAdmin, async (r
             [is_active, id_sekolah]
         );
         
-        if (result.affectedRows === 0) {
+        if (result.rowCount === 0) {
             return res.status(404).json({ message: "Sekolah tidak ditemukan atau status sudah sama." });
         }
         
@@ -111,14 +111,14 @@ router.delete('/schools/:id_sekolah', verifyToken, checkSuperAdmin, async (req, 
         await client.query('COMMIT'); // Jika semua sukses, commit perubahan
         // ==========================================================
 
-        if (result.affectedRows === 0) {
+        if (result.rowCount === 0) {
             return res.status(404).json({ message: "Sekolah tidak ditemukan setelah penghapusan." });
         }
         
         res.status(200).json({ message: 'Sekolah dan semua data terkait berhasil dihapus secara permanen.' });
 
     } catch (error) {
-        await connection.rollback(); // Jika ada yang gagal, batalkan semua
+        await clientclient.query('ROLLBACK'); // Jika ada yang gagal, batalkan semua
         console.error("Error menghapus sekolah (Super Admin):", error);
         res.status(500).json({ message: "Terjadi error pada server saat menghapus sekolah. Transaksi dibatalkan." });
     } finally {

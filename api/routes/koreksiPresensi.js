@@ -87,7 +87,7 @@ router.put('/:id_presensi', async (req, res) => {
         );
 
         // Cek apakah ada baris yang terpengaruh (updated)
-        if (result.affectedRows === 0) {
+        if (result.rowCount === 0) {
             return res.status(404).json({ message: "Data presensi tidak ditemukan atau Anda tidak berhak mengubahnya." });
         }
         

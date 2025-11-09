@@ -16,7 +16,7 @@ router.get('/terbaru', async (req, res) => {
         const idSekolah = req.user.sekolahId;
 
         // ATURAN 3: Query ke 'tabel_pengumuman' dan filter id_sekolah
-        const [rows] = await pool.query(
+        result.rows = await pool.query(
             'SELECT isi_pengumuman FROM tabel_pengumuman WHERE id_sekolah = $1 ORDER BY created_at DESC LIMIT 1',
             [idSekolah]
         );
