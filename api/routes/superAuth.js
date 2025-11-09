@@ -32,16 +32,14 @@ router.post('/login', async (req, res) => {
                 return res.status(401).json({ message: "Email atau password salah!" });
             }
 
-        // --- Login Berhasil ---
         // Buat token JWT khusus Super Admin
         const tokenPayload = {
             userId: user.id_user,
             role: user.role // 'Super Admin'
         };
 
-        const token = jwt.sign(tokenPayload, JWT_SECRET, { expiresIn: '1h' }); // Durasi lebih pendek?
+        const token = jwt.sign(tokenPayload, JWT_SECRET, { expiresIn: '1h' }); 
 
-        // (Opsional: Kirim data user tanpa password)
         delete user.password_hash; 
 
         res.json({ 
