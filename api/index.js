@@ -20,7 +20,7 @@ app.use(express.static('public'));
 // =============================================================
 
 app.get('/daftar', (req, res) => {
-    res.sendFile(path.join(__dirname, 'daftar.html')); 
+res.sendFile(path.join(__dirname, 'public', 'daftar.html')); 
 });
 
 app.post('/daftar', async (req, res) => {    
