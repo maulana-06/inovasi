@@ -171,7 +171,7 @@ const PORT = process.env.PORT || 8080;
 const testDbConnection = async () => {
     try {
         const client = await pool.connect();
-        console.log("✅ Koneksi Host ke Supabase SUKSES!");
+        console.log("✅ Koneksi Host ke Railway SUKSES!");
         client.release();
     } catch (error) {
         console.error("❌ GAGAL KONEKSI HOST/DNS:", error.message);
