@@ -1,4 +1,4 @@
-// File: index.js 
+// File: index.js (VERSI TERKOREKSI)
 
 require('dotenv').config();
 const express = require('express');
@@ -16,11 +16,11 @@ app.use(express.static('public'));
 
 // =============================================================
 // RUTE PENDAFTARAN
-// [PERBAIKAN 3] Pindahkan blok ini ke ATAS "Satpam"
 // =============================================================
 
 app.get('/daftar', (req, res) => {
-res.sendFile(path.join(__dirname, 'public', 'daftar.html')); 
+
+    res.sendFile(path.join(__dirname, 'public', 'daftar.html')); 
 });
 
 app.post('/daftar', async (req, res) => {    
@@ -42,21 +42,19 @@ app.post('/daftar', async (req, res) => {
     const password_hash = await bcrypt.hash(password_admin, salt);
 
     // 4. Mulai Transaksi Database
-    let client; // Ganti 'connection' menjadi 'client'
+    let client;
     try {
         console.log('Mencoba koneksi ke DB...');
-        // 1. Ambil client dari pool (pg syntax)
         client = await pool.connect(); 
         console.log('Koneksi DB berhasil.');
         
-        // 2. Mulai Transaksi PostgreSQL
         await client.query('BEGIN'); 
 
-        // --- Validasi Keunikan (Gunakan client.query() dan cek result.rows.length) ---
+        // --- Validasi Keunikan ---
         const npsnResult = await client.query(
             'SELECT npsn FROM tabel_sekolah WHERE npsn = $1', [npsn]
         );
-        if (npsnResult.rows.length > 0) { // Cek result.rows.length
+        if (npsnResult.rows.length > 0) {
             throw new Error('NPSN sudah terdaftar.');
         }
 
@@ -74,16 +72,15 @@ app.post('/daftar', async (req, res) => {
             throw new Error('Email admin sudah terdaftar.');
         }
 
-        // Simpan ke tabel_sekolah (Gunakan client.query() dengan RETURNING)
+        // Simpan ke tabel_sekolah (dengan RETURNING)
         const sekolahResult = await client.query(
-            'INSERT INTO tabel_sekolah (npsn, subdomain, nama_sekolah) VALUES ($1, $2, $3) RETURNING id_sekolah', // RETURNING ID
+            'INSERT INTO tabel_sekolah (npsn, subdomain, nama_sekolah) VALUES ($1, $2, $3) RETURNING id_sekolah',
             [npsn, subdomain, nama_sekolah]
         );
         
-        // 3. Ambil ID yang di-generate dari PostgreSQL
-        const newSekolahId = sekolahResult.rows[0].id_sekolah; // Ambil ID dari result.rows
+        const newSekolahId = sekolahResult.rows[0].id_sekolah;
 
-        // Simpan ke tabel_user (Gunakan client.query())
+        // Simpan ke tabel_user
         await client.query(
             'INSERT INTO tabel_user (id_sekolah, email, password_hash, nama_lengkap, role) VALUES ($1, $2, $3, $4, $5)',
             [newSekolahId, email_admin, password_hash, nama_admin, 'Admin']
@@ -92,7 +89,9 @@ app.post('/daftar', async (req, res) => {
         // 4. Commit Transaksi
         await client.query('COMMIT'); 
         console.log('Pendaftaran BERHASIL.');
-        res.redirect(`/daftar-sukses.html$1subdomain=${subdomain}`);
+        
+        // KRITIS: PERBAIKAN REDIRECT DARI $1 MENJADI ?
+        res.redirect(`/daftar-sukses.html?subdomain=${subdomain}`);
 
     } catch (error) {
         // 5. Rollback jika ada error
@@ -100,7 +99,6 @@ app.post('/daftar', async (req, res) => {
             await client.query('ROLLBACK');
         }
         console.error("ERROR REGISTRASI SEKOLAH:", error.message);
-        // ... (sisanya logic error Anda) ...
         return res.status(500).send('Terjadi kesalahan pada server. Coba lagi nanti.');
 
     } finally {
@@ -112,18 +110,18 @@ app.post('/daftar', async (req, res) => {
 });
 
 // =============================================================
-// [PERBAIKAN, "Satpam" aktif SETELAH rute publik
+// MIDDLEWARE IDENTIFY TENANT DAN AUTH (Satpam)
+// =============================================================
 const identifyTenant = require('./middleware/identifyTenant'); 
-app.use(identifyTenant); 
 const auth = require('./middleware/auth'); 
+app.use(identifyTenant);
 
-app.get('/api', (req, res) => {
-  res.status(200).send('API is running successfully on Vercel!');
+app.get('/', (req, res) => {
     if (req.isMainDomain) {
 
-        res.sendFile(path.join(__dirname, 'public', 'index.html'));
+        res.sendFile(path.join(__dirname, 'public', 'index.html')); 
     } else {
-        res.redirect('login.html');
+        res.redirect('/login.html'); 
     }
 });
 // =============================================================
@@ -144,9 +142,9 @@ const profilRoutes = require('./routes/profil');
 const checkSuperAdmin = require('./middleware/checkSuperAdmin'); 
 const superAdminRoutes = require('./routes/superAdmin');
 const superAuthRoutes = require('./routes/superAuth');
+
 // -------------------------------------------------------------
-// Rute-rute PRIVAT di bawah ini dijaga oleh "Auth-Guard" ('auth')
-// 'auth' berjalan SETELAH 'identifyTenant'
+// Rute-rute PRIVAT
 // -------------------------------------------------------------
 app.use('/api/auth', authRoutes);
 app.use('/api/guru', auth, guruRoutes);
@@ -166,21 +164,14 @@ app.use('/api/superAuth', superAuthRoutes);
 app.get('/api', (req, res) => {
   res.status(200).send('API is running successfully on Vercel!');
 });
-const PORT = process.env.PORT || 8080; 
 
-const testDbConnection = async () => {
-    try {
-        const client = await pool.connect();
-        console.log("✅ Koneksi Host ke Railway SUKSES!");
-        client.release();
-    } catch (error) {
-        console.error("❌ GAGAL KONEKSI HOST/DNS:", error.message);
-    }
-};
+const PORT = process.env.PORT || 5000; 
+
 if (process.env.NODE_ENV !== 'production') {
-    app.listen(PORT, async () => { // Tambahkan async test
-        console.log(`Aplikasi berjalan pada port ${PORT}.`);
-        await testDbConnection(); // Panggil test
+    app.listen(PORT, () => { 
+        console.log(`🚀 Aplikasi berjalan pada port http://localhost:${PORT}.`);
+        console.log("✅ Koneksi DB (Railway) akan diuji saat ada request.");
     });
 }
+
 module.exports = app;

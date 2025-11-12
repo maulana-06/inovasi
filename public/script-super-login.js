@@ -40,6 +40,6 @@ document.getElementById('super-login-form').addEventListener('submit', async (ev
         errorMessage.textContent = error.message;
         errorMessage.classList.remove('d-none'); 
         submitButton.disabled = false;
-        submitButton.textContent = 'login-super.html';
+        submitButton.textContent = 'super-login.html';
     }
 });

@@ -1,68 +1,86 @@
-// File: routes/presensi.js (VERSI BARU - Full Tenant-Aware)
+// File: routes/presensi.js (VERSI FINAL POSTGRESQL)
 
 const express = require('express');
 const router = express.Router();
 const pool = require('../database');
 
-// =================================================================
-// Middleware 'loadPengaturanMiddleware' LAMA sudah DIHAPUS.
-// 'identifyTenant' di server.js sudah memberi kita 'req.sekolah'
-// 'auth' di server.js sudah memberi kita 'req.user'
-// =================================================================
-
+// Fungsi Jarak
 const calculateDistance = (lat1, lon1, lat2, lon2) => {
-
-    const R = 6371e3; const φ1 = lat1 * Math.PI/180, φ2 = lat2 * Math.PI/180, Δφ = (lat2-lat1) * Math.PI/180, Δλ = (lon2-lon1) * Math.PI/180; const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) + Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ/2) * Math.sin(Δλ/2); return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    const R = 6371e3; 
+    const φ1 = lat1 * Math.PI/180, φ2 = lat2 * Math.PI/180;
+    const Δφ = (lat2-lat1) * Math.PI/180;
+    const Δλ = (lon2-lon1) * Math.PI/180;
+    const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) + Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ/2) * Math.sin(Δλ/2); 
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
 };
 
+// ================================================
+// ENDPOINT 1: POST /masuk (KRITIS)
+// ================================================
 router.post('/masuk', async (req, res) => {
     try {
         const idUser = req.user.userId;
         const idSekolah = req.user.sekolahId;
-        result.rows = await pool.query(
-            `SELECT 
-                latitude,             
-                longitude,            
-                radius_meter, 
-                jam_masuk 
-            FROM tabel_sekolah WHERE id_sekolah = $1`,
-            [idSekolah]
-        );
-
-        const pengaturanSekolah = result.rows[0];        
-        const latSekolah = Number(pengaturanSekolah.latitude);
-        const lonSekolah = Number(pengaturanSekolah.longitude);
-        const radiusMeter = Number(pengaturanSekolah.radius_meter);
-        const latGuru = Number(req.body.latitude);
-        const lonGuru = Number(req.body.longitude);
+        const { latitude, longitude, foto_masuk } = req.body;
         
-        const jarak = calculateDistance(latGuru, lonGuru, latSekolah, lonSekolah);
-        
-        if (jarak > radiusMeter) {
-            return res.status(400).json({ message: `Anda berada ${jarak.toFixed(0)} meter di luar radius sekolah.` });
-        }
-
-        // 2. Cek apakah sudah presensi
-        const [existing] = await pool.query(
-            "SELECT * FROM tabel_presensi WHERE id_user = $1 AND tanggal = CURDATE()", [idUser]
+        // 1. Cek apakah user sudah presensi hari ini
+        // KRITIS: Ganti CURDATE() -> CURRENT_DATE
+        const existingResult = await pool.query(
+            "SELECT id_presensi, status FROM tabel_presensi WHERE id_user = $1 AND id_sekolah = $2 AND tanggal = CURRENT_DATE", 
+            [idUser, idSekolah]
         );
+        const existing = existingResult.rows;
+
         if (existing.length > 0) {
-            return res.status(400).json({ message: 'Anda sudah presensi masuk hari ini.' });
+            // Cek jika status sudah Izin/Sakit/Alpa, atau sudah presensi masuk
+            if (existing[0].status !== 'alpa' && existing[0].status !== 'belum presensi') {
+                 return res.status(400).json({ message: `Anda sudah tercatat presensi dengan status: ${existing[0].status}.` });
+            }
+        }
+        
+        // 2. Validasi Jarak
+        const { latitude: latSekolah, longitude: lonSekolah, radius_meter } = req.sekolah;
+
+        if (!latSekolah || !lonSekolah || !radius_meter) {
+             return res.status(500).json({ message: 'Pengaturan lokasi sekolah belum lengkap.' });
         }
 
-        // 3. Tentukan status (Terlambat atau Hadir)
-        const jamMasukSekolah = pengaturanSekolah.jam_masuk; 
-        const waktuSekarang = new Date().toLocaleTimeString('en-GB'); 
+        const distance = calculateDistance(latitude, longitude, latSekolah, lonSekolah);
+        if (distance > radius_meter) {
+             return res.status(403).json({ message: 'Anda berada di luar radius presensi yang ditentukan.' });
+        }
         
-        const status = (waktuSekarang > jamMasukSekolah) ? 'terlambat' : 'hadir';
-
-        // 4. Simpan ke Database
+        // 3. Tentukan status (hadir atau terlambat)
+        const { jam_masuk: jamMasukSekolah } = req.sekolah; // Ambil jam_masuk dari tabel_sekolah
+        const waktuSekarang = new Date();
+        const waktuMasukTarget = new Date();
+        
+        if (jamMasukSekolah) {
+            // Set jam masuk target hari ini
+            const [h, m, s] = jamMasukSekolah.split(':').map(Number);
+            waktuMasukTarget.setHours(h, m, s, 0);
+        } else {
+             // Jika jam masuk tidak diset, default 07:00:00
+             waktuMasukTarget.setHours(7, 0, 0, 0);
+        }
+        
+        const status = (waktuSekarang > waktuMasukTarget) ? 'terlambat' : 'hadir';
+        
+        // 4. Catat Presensi
         await pool.query(
-            "INSERT INTO tabel_presensi (id_user, id_sekolah, tanggal, waktu_masuk, status) VALUES ($1, $2, CURDATE(), CURTIME(), $3)",
-            [idUser, idSekolah, status]
+            // KRITIS: Ganti CURDATE() -> CURRENT_DATE. Ganti CURTIME() -> LOCALTIME.
+            // KRITIS: Ganti waktu_masuk -> jam_masuk, foto_masuk -> foto_masuk
+            `INSERT INTO tabel_presensi (id_sekolah, id_user, tanggal, jam_masuk, status, foto_masuk) 
+             VALUES ($1, $2, CURRENT_DATE, LOCALTIME, $3, $4) 
+             ON CONFLICT (id_presensi) DO UPDATE 
+             SET jam_masuk = LOCALTIME, status = $3, foto_masuk = $4`,
+            [idSekolah, idUser, status, foto_masuk]
         );
         
-        res.status(201).json({ message: 'Presensi masuk berhasil dicatat!' });
+        res.status(200).json({ 
+            message: `Presensi masuk berhasil dicatat! Status: ${status.toUpperCase()}`,
+            status: status.toUpperCase()
+        });
 
     } catch (error) {
         console.error("Error presensi masuk:", error);
@@ -70,48 +88,89 @@ router.post('/masuk', async (req, res) => {
     }
 });
 
-// --- ENDPOINT PRESENSI PULANG ---
+
+// ================================================
+// ENDPOINT 2: POST /pulang (KRITIS)
+// ================================================
 router.post('/pulang', async (req, res) => {
-    // (Logika serupa untuk /pulang, validasi GPS, dll)
-    // ... (disederhanakan dulu)
     try {
         const idUser = req.user.userId;
         const idSekolah = req.user.sekolahId;
-
-        const [existing] = await pool.query(
-            "SELECT * FROM tabel_presensi WHERE id_user = $1 AND tanggal = CURDATE()", [idUser]
+        const { latitude, longitude, foto_pulang } = req.body;
+        
+        // 1. Cek apakah user sudah presensi masuk
+        // KRITIS: Ganti CURDATE() -> CURRENT_DATE
+        const existingResult = await pool.query(
+            "SELECT jam_pulang, status FROM tabel_presensi WHERE id_user = $1 AND id_sekolah = $2 AND tanggal = CURRENT_DATE", 
+            [idUser, idSekolah]
         );
-        if (existing.length === 0) return res.status(400).json({ message: 'Anda belum presensi masuk.' });
-        if (existing[0].waktu_pulang) return res.status(400).json({ message: 'Anda sudah presensi pulang.' });
+        const existing = existingResult.rows;
 
+        if (existing.length === 0) return res.status(400).json({ message: 'Anda belum presensi masuk hari ini.' });
+        if (existing[0].jam_pulang) return res.status(400).json({ message: 'Anda sudah presensi pulang.' });
+        
+        // 2. Validasi Jarak (Sama seperti masuk)
+        const { latitude: latSekolah, longitude: lonSekolah, radius_meter } = req.sekolah;
+
+        if (!latSekolah || !lonSekolah || !radius_meter) {
+             return res.status(500).json({ message: 'Pengaturan lokasi sekolah belum lengkap.' });
+        }
+
+        const distance = calculateDistance(latitude, longitude, latSekolah, lonSekolah);
+        if (distance > radius_meter) {
+             return res.status(403).json({ message: 'Anda berada di luar radius presensi yang ditentukan.' });
+        }
+
+        // 3. Catat Presensi Pulang
         await pool.query(
-            "UPDATE tabel_presensi SET waktu_pulang = CURTIME() WHERE id_user = $1 AND tanggal = CURDATE()",
-            [idUser]
+            // KRITIS: Ganti CURTIME() -> LOCALTIME. Ganti CURDATE() -> CURRENT_DATE.
+            // KRITIS: Ganti waktu_pulang -> jam_pulang, foto_pulang -> foto_pulang
+            "UPDATE tabel_presensi SET jam_pulang = LOCALTIME, foto_pulang = $1 WHERE id_user = $2 AND id_sekolah = $3 AND tanggal = CURRENT_DATE",
+            [foto_pulang, idUser, idSekolah]
         );
         
-        res.status(200).json({ message: 'Presensi pulang berhasil dicatat!' });
+        res.status(200).json({ 
+            message: 'Presensi pulang berhasil dicatat!',
+            status: 'SUDAH_PULANG'
+        });
+        
     } catch (error) {
         console.error("Error presensi pulang:", error);
         res.status(500).json({ message: "Terjadi error pada server." });
     }
 });
 
-// --- ENDPOINT RIWAYAT
+// ================================================
+// ENDPOINT 3: GET /riwayat (KRITIS)
+// ================================================
 router.get('/riwayat', async (req, res) => {
     try {
         const idUser = req.user.userId;
         const idSekolah = req.user.sekolahId;
-        const { bulan, tahun } = req.query;
+        const { bulan, tahun } = req.query; // Bulan 1-12
 
-        const [riwayat] = await pool.query(
-            "SELECT tanggal, waktu_masuk, waktu_pulang, status AS status_kehadiran FROM tabel_presensi WHERE id_user = $1 AND id_sekolah = $2 AND MONTH(tanggal) = $3 AND YEAR(tanggal) = $4 ORDER BY tanggal DESC",
+        // KRITIS: Ganti MONTH(tanggal) dan YEAR(tanggal)
+        // KRITIS: Ganti waktu_masuk/pulang -> jam_masuk/pulang
+        const riwayatResult = await pool.query(
+            `SELECT 
+                tanggal, jam_masuk, jam_pulang, status AS status_kehadiran 
+            FROM 
+                tabel_presensi 
+            WHERE 
+                id_user = $1 AND id_sekolah = $2 
+                AND EXTRACT(MONTH FROM tanggal) = $3 
+                AND EXTRACT(YEAR FROM tanggal) = $4
+            ORDER BY tanggal DESC`,
             [idUser, idSekolah, bulan, tahun]
         );
-        res.json(riwayat);
+        
+        res.status(200).json(riwayatResult.rows);
+
     } catch (error) {
-        console.error("Error ambil riwayat:", error);
-        res.status(500).json({ message: "Terjadi error pada server." });
+        console.error("Error mengambil riwayat presensi:", error);
+        res.status(500).json({ message: "Terjadi error pada server saat memuat riwayat." });
     }
 });
+
 
 module.exports = router;

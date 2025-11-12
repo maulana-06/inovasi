@@ -67,7 +67,7 @@ router.put('/:id_presensi', async (req, res) => {
         console.log("[Koreksi PUT] Data baru:", { waktu_masuk, waktu_pulang, status, keterangan }); // Debug
 
         // === PERBAIKAN: Gunakan pool.query ===
-        const [result] = await pool.query( 
+        const result = await pool.query(
             `UPDATE tabel_presensi 
              SET 
                 waktu_masuk = $1, 

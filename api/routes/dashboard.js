@@ -1,49 +1,88 @@
-// File: routes/dashboard.js (VERSI PERBAIKAN FINAL)
+// File: routes/dashboard.js (VERSI FINAL TERKOREKSI)
 
 const express = require('express');
 const router = express.Router();
 const pool = require('../database'); 
-const auth = require('../middleware/auth');
+const auth = require('../middleware/auth'); 
 
-router.get('/summary', auth, async (req, res) => { 
+router.get('/summary', auth, async (req, res) => {
     try {
+        // Pastikan req.user dan req.sekolah ada (ditempel oleh middleware)
+        if (!req.user || !req.sekolah) {
+            return res.status(401).json({ message: "Otentikasi atau identifikasi sekolah gagal." });
+        }
+       
         const idSekolah = req.user.sekolahId; 
         const idAdmin = req.user.userId; 
+        const namaSekolah = req.sekolah.nama_sekolah;
 
-        // === AMBIL NAMA ADMIN DARI tabel_user ===
-        const [adminRows] = await pool.query(
+        // === 1. Query Nama Admin (FIXED) ===
+        const adminResult = await pool.query(
             "SELECT nama_lengkap FROM tabel_user WHERE id_user = $1",
             [idAdmin]
         );
-        const namaAdmin = adminRows.length > 0 ? adminresult.rows[0].nama_lengkap : "Admin Error";
-        const namaSekolah = req.sekolah.nama_sekolah;
+        // KRITIS: Menggunakan adminResult.rows
+        const namaAdmin = adminResult.rows.length > 0 ? adminResult.rows[0].nama_lengkap : "Admin Error";
 
-        // Query 1: Presensi (Gunakan execute)
-        const queryPresensi = 'SELECT COUNT(CASE WHEN status = \'hadir\' THEN 1 END) as total_hadir, COUNT(CASE WHEN status = \'terlambat\' THEN 1 END) as total_terlambat, COUNT(CASE WHEN status = \'izin\' OR status = \'sakit\' THEN 1 END) as total_izin_sakit FROM tabel_presensi WHERE tanggal = CURDATE() AND id_sekolah = $1;';
-        const [presensiSummary] = await pool.query(queryPresensi, [idSekolah]); 
-        console.log("Query Presensi BERHASIL."); 
+        // === 2. Query Presensi Hari Ini (FIXED PG SYNTAX) ===
+        // Menggunakan CURRENT_DATE untuk PostgreSQL
+        const queryPresensi = `
+            SELECT 
+                COUNT(CASE WHEN status = 'hadir' THEN 1 END) as total_hadir, 
+                COUNT(CASE WHEN status = 'terlambat' THEN 1 END) as total_terlambat, 
+                COUNT(CASE WHEN status = 'izin' OR status = 'sakit' THEN 1 END) as total_izin_sakit 
+            FROM 
+                tabel_presensi 
+            WHERE 
+                tanggal = CURRENT_DATE 
+                AND id_sekolah = $1;
+        `;
+        const presensiResult = await pool.query(queryPresensi, [idSekolah]); 
+        // KRITIS: Ambil data presensi dari .rows
+        const presensiSummary = presensiResult.rows; 
 
-        // Query 2: Total Staf (Gunakan execute dan nama variabel yang benar)
-        const queryTotalStaf = "SELECT COUNT(*) as total_aktif FROM tabel_user WHERE (role = 'Guru' OR role='Admin') AND id_sekolah = $1 AND status = 'Aktif';";
-        // [PERBAIKAN] Gunakan nama variabel 'totalStafRows'
-        const [totalStafRows] = await pool.query(queryTotalStaf, [idSekolah]); 
-        console.log("pool.query Total Staf BERHASIL. Hasil:", totalStafRows); 
+        // === 3. Query Total Staf Aktif (FIXED PG SYNTAX) ===
+        const queryTotalStaf = `
+            SELECT 
+                COUNT(CASE WHEN status = 'Aktif' THEN 1 END) as total_aktif 
+            FROM 
+                tabel_user 
+            WHERE 
+                id_sekolah = $1 
+                AND role IN ('Admin', 'Guru')
+        `;
+        const totalStafResult = await pool.query(queryTotalStaf, [idSekolah]);
+        // KRITIS: Ambil data staf dari .rows
+        const totalStafRows = totalStafResult.rows;
+
+        // === 4. Query Permintaan Izin Terbaru (FIXED PG SYNTAX) ===
+        const queryIzin = `
+            SELECT 
+                u.nama_lengkap, i.tanggal_mulai, i.id_izin, i.jenis 
+            FROM 
+                tabel_izin i 
+            JOIN 
+                tabel_user u ON i.id_user = u.id_user 
+            WHERE 
+                i.status = 'Menunggu' 
+                AND i.id_sekolah = $1 
+            ORDER BY 
+                i.created_at DESC 
+            LIMIT 5
+        `;
+        const izinResult = await pool.query(queryIzin, [idSekolah]);
+        // KRITIS: Ambil data izin dari .rows
+        const permintaanIzin = izinResult.rows;
+
+        // === 5. Kalkulasi Ringkasan Dashboard ===
+        // Pastikan variabel ada sebelum diakses
+        const total_aktif = parseInt(totalStafRows[0]?.total_aktif || 0);
+        const hadir = parseInt(presensiSummary[0]?.total_hadir || 0);
+        const terlambat = parseInt(presensiSummary[0]?.total_terlambat || 0);
+        const izin_sakit = parseInt(presensiSummary[0]?.total_izin_sakit || 0);
         
-        // Query 3: Aktivitas Terkini (Gunakan execute)
-        const queryAktivitas = `(SELECT u.nama_lengkap, p.waktu_masuk AS waktu_aksi, 'Presensi Masuk' AS jenis_aktivitas, p.status FROM tabel_presensi p JOIN tabel_user u ON p.id_user = u.id_user WHERE p.tanggal = CURDATE() AND p.waktu_masuk IS NOT NULL AND p.id_sekolah = $1) UNION ALL (SELECT u.nama_lengkap, p.waktu_pulang AS waktu_aksi, 'Presensi Pulang' AS jenis_aktivitas, 'Pulang' AS status FROM tabel_presensi p JOIN tabel_user u ON p.id_user = u.id_user WHERE p.tanggal = CURDATE() AND p.waktu_pulang IS NOT NULL AND p.id_sekolah = $1) ORDER BY waktu_aksi DESC LIMIT 5`;
-        // [PERBAIKAN] Gunakan pool.query
-        const [aktivitasTerkini] = await pool.query(queryAktivitas, [idSekolah, idSekolah]); 
-
-        // Query 4: Permintaan Izin (Gunakan execute)
-        const queryIzin = `SELECT u.nama_lengkap, i.tanggal_mulai, i.id_izin, i.jenis FROM tabel_izin i JOIN tabel_user u ON i.id_user = u.id_user WHERE i.status = 'Menunggu' AND i.id_sekolah = $1 ORDER BY i.created_at DESC LIMIT 5`;
-        // [PERBAIKAN] Gunakan pool.query
-        const [permintaanIzin] = await pool.query(queryIzin, [idSekolah]);
-
-        // Kalkulasi (Gunakan totalStafRows)
-        const hadir = (presensiSummary[0]?.total_hadir || 0) + (presensiSummary[0]?.total_terlambat || 0);
-        const izin_sakit = presensiSummary[0]?.total_izin_sakit || 0;
-        const total_aktif = totalStafresult.rows[0]?.total_aktif || 0; 
-        const belum_ada_kabar = total_aktif - hadir - izin_sakit;
+        let belum_ada_kabar = total_aktif - hadir - terlambat - izin_sakit;
+        if (belum_ada_kabar < 0) belum_ada_kabar = 0; 
 
         const responseData = {
             namaSekolah: namaSekolah,   
@@ -51,20 +90,21 @@ router.get('/summary', auth, async (req, res) => {
             
             summary_cards: { 
                 hadir: hadir,
-                terlambat: presensiSummary[0]?.total_terlambat || 0,
+                terlambat: terlambat,
                 izin_sakit: izin_sakit,
-                belum_ada_kabar: belum_ada_kabar < 0 ? 0 : belum_ada_kabar
+                belum_ada_kabar: belum_ada_kabar
             },
-            aktivitas_terkini: aktivitasTerkini,
-            permintaan_persetujuan: permintaanIzin
+            aktivitas_terkini: permintaanIzin, 
+            total_staf: total_aktif,
         };
-        
+
         res.status(200).json(responseData);
 
     } catch (error) {
-        console.error("Error saat mengambil data dasbor:", error); 
-        res.status(500).json({ message: "Terjadi error SQL pada server." });
-    }
+        // Tampilkan error ke terminal untuk debugging
+        console.error("Error mengambil ringkasan Dashboard:", error);
+        res.status(500).json({ message: "Gagal memuat data dashboard. Cek log server." });
+    } 
 });
 
 module.exports = router;

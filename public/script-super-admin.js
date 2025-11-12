@@ -176,7 +176,7 @@ function formatTanggal(isoString) {
 
     const date = new Date(datePart);
     const options = { day: 'numeric', month: 'short', year: 'numeric' };
-    return date.toLocaleDateString('id-ID', options); // Contoh: 2 Nov 2025
+    return date.toLocaleDateString('id-ID', options); // Contoh: 02 Nov 2025
 }
 
 document.addEventListener('DOMContentLoaded', () => {

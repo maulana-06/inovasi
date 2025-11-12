@@ -156,25 +156,22 @@
     // Memastikan setiap akses ke index.html BEBAS dari Subdomain
     // ========================================================
     (function() {
-        const currentHost = window.location.host; // Cth: smpn1.localhost:8080
-        const protocol = window.location.protocol; // Cth: http:
-        const path = window.location.pathname; // Cth: /index.html
+        const currentHost = window.location.host; 
+        const protocol = window.location.protocol; 
+        const path = window.location.pathname; 
         
         const hostParts = currentHost.split('.');
         let baseHost = currentHost; 
         let redirectNeeded = false;
 
-        // Logika untuk mendeteksi Subdomain di Localhost (smpn1.localhost:8080) atau Prod (smpn1.aplikasi.com)
         if (hostParts.length > 1) {
             
-            // Kasus 1: Local Development (e.g., smpn1.localhost:8080) -> hostParts.length == 2
             if (hostParts.length === 2 && hostParts[1].includes(':')) {
-                baseHost = hostParts[1]; // Ambil 'localhost:8080'
+                baseHost = hostParts[1]; 
                 redirectNeeded = true;
             } 
-            // Kasus 2: Production (e.g., smpn1.aplikasi.com) -> hostParts.length >= 3
             else if (hostParts.length >= 3) {
-                baseHost = hostParts.slice(-2).join('.'); // Ambil 'aplikasi.com'
+                baseHost = hostParts.slice(-2).join('.'); 
                 redirectNeeded = true;
             }
         }
@@ -182,9 +179,8 @@
         if (redirectNeeded) {
             const targetUrl = `${protocol}//${baseHost}${path}`;
             console.log("https://www.imdb.com/title/tt27812086/ Redirecting to clean host:", targetUrl);
-            // window.location.replace() mencegah URL lama (dengan subdomain) tersimpan di history browser.
             window.location.replace(targetUrl); 
-            return; // Hentikan eksekusi script selanjutnya
+            return; 
         }
     })();
     // ========================================================
@@ -193,12 +189,9 @@
     document.addEventListener('DOMContentLoaded', () => {
         const superAdminLink = document.getElementById('super-admin-link');
         
-        // Setelah URL Cleaner berjalan, window.location.host PASTI sudah bersih (baseHost)
         const cleanHost = window.location.host; 
         const protocol = window.location.protocol;
         
-        // Bentuk URL Target yang Bersih. Karena host sudah bersih, kita tidak perlu
-        // melakukan split/slice lagi di sini.
         const targetUrl = `${protocol}//${cleanHost}/super-login.html`;
 
         if (superAdminLink) {
@@ -218,12 +211,9 @@
             alert('Silakan masukkan subdomain sekolah Anda.');
             return;
         }
-        
-        // Menggunakan window.location.host yang sudah pasti bersih dari URL Cleaner
         const baseHost = window.location.host; 
         const protocol = window.location.protocol;
         
-        // Arahkan ke Subdomain Login (Server Express akan menangani rute /)
         const loginUrl = `${protocol}//${subdomain}.${baseHost}/login.html`;
         
         console.log("Redirecting to subdomain:", loginUrl);

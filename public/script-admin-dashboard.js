@@ -58,10 +58,13 @@ document.addEventListener('DOMContentLoaded', function() {
 
     async function muatStatusPresensiAdmin() {
         /* ... (Kode muatStatusPresensiAdmin Anda yang sudah benar) ... */
+
         statusPresensiElem.textContent = "Memeriksa status...";
         tombolPresensi.disabled = true;
         try {
-            const response = await fetch('/api/guru/status', { headers: { 'Authorization': 'Bearer ' + token } });
+            const response = await fetch('/api/guru/status', { 
+                headers: { 
+                    'Authorization': 'Bearer' + token } });
             if (!response.ok) throw new Error('Gagal memuat status presensi.');
             const data = await response.json();
             updateUIAdmin(data.status_presensi);
@@ -97,7 +100,8 @@ document.addEventListener('DOMContentLoaded', function() {
     
     async function handleTombolPresensiAdmin() {
         /* ... (Kode handleTombolPresensiAdmin Anda yang sudah benar) ... */
-         if (!statusSaatIni || statusSaatIni === 'SUDAH_PULANG') return;
+
+        if (!statusSaatIni || statusSaatIni === 'SUDAH_PULANG') return;
         try {
             stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
             videoElem.srcObject = stream;

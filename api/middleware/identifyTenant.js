@@ -1,51 +1,58 @@
-// File: middleware/identifyTenant.js
+// File: middleware/identifyTenant.js (VERSI FINAL POSTGRESQL + FIX RELEASE)
 
-// [PENTING] Sesuaikan path file database.js
 const pool = require('../database.js'); 
 
 async function identifyTenant(req, res, next) {
     
-    // 1. Dapatkan subdomain dari request
     const hostnameParts = req.hostname.split('.');
     const subdomain = hostnameParts[0];
 
-    // 2. Abaikan domain utama (untuk halaman landing/daftar)
-    // Ganti 'aplikasipresensi' dengan domain utama ! saat deploy
+    // 1. Abaikan domain utama (www, localhost, atau domain utama Anda)
     if (subdomain === 'www' || subdomain === 'aplikasipresensi' || subdomain === 'localhost') {
-        req.isMainDomain = true; // Tandai ini sebagai domain utama
-        return next(); // Lanjutkan tanpa mencari tenant (sekolah)
+        req.isMainDomain = true; 
+        return next(); 
     }
 
-    // 3. Cari sekolah (tenant) di database
-    let connection;
+    // 2. Cari sekolah (tenant) di database
+    let client; // Deklarasi variabel koneksi di luar try
     try {
+        // Ambil koneksi dari pool
         client = await pool.connect();
         
-        const [rows] = await pool.query(
-            'SELECT * FROM tabel_sekolah WHERE subdomain = $1',
+        const result = await client.query( 
+            'SELECT id_sekolah, subdomain, is_active, nama_sekolah FROM tabel_sekolah WHERE subdomain = $1',
             [subdomain]
         );
         
+        const rows = result.rows; 
+        
         if (rows.length > 0) {
-            // 4. DITEMUKAN! Tempelkan info sekolah ke 'req'
-            // Inilah "stiker" ajaib kita.
-            // Semua rute API nanti bisa mengakses 'req.sekolah.id_sekolah', dll.
-            req.sekolah = result.rows[0]; 
+            req.sekolah = rows[0]; 
             req.isMainDomain = false;
             
-            return next(); // Lanjutkan ke rute berikutnya (misal: /api/auth/login)
+            // Cek status aktif sekolah
+            if (req.sekolah.is_active === 0) {
+                 return res.status(403).json({ 
+                    message: `Akses ditolak. Sekolah ${subdomain} berstatus Nonaktif.`
+                });
+            }
+            next();
+            return;
+
         } else {
-            // 5. TIDAK DITEMUKAN!
-            // Kirim error dalam format JSON, karena ini akan melindungi API !
             return res.status(404).json({ 
                 message: `Sekolah dengan alamat "${subdomain}" tidak ditemukan.`
             });
         }
     } catch (error) {
+        // Ini yang menangkap Error: read ECONNRESET
         console.error('Error di middleware identifyTenant:', error);
-        return res.status(500).json({ message: 'Terjadi kesalahan pada server' });
+        return res.status(500).json({ message: 'Terjadi kesalahan internal pada server saat mencari sekolah. Cek koneksi DB.' });
     } finally {
-        if (client) { client.release(); }
+        // KRITIS: Melepaskan koneksi SELALU di 'finally'
+        if (client) { 
+            client.release(); 
+        }
     }
 }
 

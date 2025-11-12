@@ -52,6 +52,37 @@ router.get('/', async (req, res) => {
         res.status(500).json({ message: "Terjadi error pada server." });
     }
 });
+// ================================================
+// 1. TAMBAHKAN RUTE SPESIFIK INI (HARUS DI ATAS ID_USER)
+// ================================================
+router.get('/datatable', async (req, res) => {
+    try {
+        const idSekolah = req.user.sekolahId;
+        
+        // Query untuk Datatable
+        const result = await pool.query(
+            `SELECT 
+                u.id_user, u.nama_lengkap, u.email, u.status, u.role, u.foto_profil,
+                g.nip_nipppk,
+                COALESCE(g.jabatan, 'Belum Diisi') AS jabatan
+            FROM 
+                tabel_user u 
+            LEFT JOIN 
+                tabel_guru g ON u.id_user = g.id_user 
+            WHERE 
+                u.id_sekolah = $1 
+                AND u.role IN ('Admin', 'Guru')
+            ORDER BY u.role DESC, u.nama_lengkap ASC`,
+            [idSekolah]
+        );
+        
+        res.status(200).json({ data: result.rows });
+
+    } catch (error) {
+        console.error("Error memuat datatable Admin/Guru:", error);
+        res.status(500).json({ message: "Gagal memuat data datatable staff. Cek log server." });
+    }
+});
 
 // ================================================
 // GET Mengambil DETAIL LENGKAP satu guru (Diperbaiki: Referensi 'result')
@@ -74,12 +105,12 @@ router.get('/:id_user', async (req, res) => {
                 u.id_user = $1 AND u.id_sekolah = $2 AND (u.role = 'Admin' OR u.role = 'Guru')`,
             [id_user, idSekolah]
         );
-
-        // Perbaikan: Cek result.rows.length
-        if (result.rows.length === 0) { 
+        const rows = result.rows; 
+    
+        if (rows.length === 0) {
             return res.status(404).json({ message: "Data guru tidak ditemukan." });
         }
-        res.status(200).json(result.rows[0]); // Perbaikan: Akses result.rows[0]
+        res.status(200).json(rows[0]);
 
     } catch (error) {
         console.error("Error mengambil detail guru:", error);

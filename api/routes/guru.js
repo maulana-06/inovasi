@@ -1,4 +1,4 @@
-// File: routes/guru.js (VERSI Baru)
+// File: routes/guru.js (VERSI FINAL TERKOREKSI UNTUK POSTGRESQL)
 
 const express = require('express');
 const router = express.Router();
@@ -25,42 +25,66 @@ const storage = multer.diskStorage({
     }
 });
 const upload = multer({ storage: storage });
+
+// ================================================
+// RUTE 1: GET /status (KRITIS: PRESENSI HARIAN)
+// ================================================
 router.get('/status', async (req, res) => {
     try {
+        // Data otentikasi dari middleware auth
         const idUser = req.user.userId;
         const idSekolah = req.user.sekolahId;
 
-        const [profilRows] = await pool.query(
-            "SELECT nama_lengkap, email FROM tabel_user WHERE id_user = $1 AND id_sekolah = $2",
+        // KRITIS: Hapus destructuring array. Gunakan result.rows.
+        const result = await pool.query( 
+            // Query untuk mendapatkan profil dan status presensi hari ini
+            `SELECT 
+                u.nama_lengkap, g.foto_profil_url, u.role, 
+                p.status, p.waktu_masuk, p.waktu_pulang 
+             FROM 
+                tabel_user u
+             LEFT JOIN 
+                tabel_guru g ON u.id_user = g.id_user
+             LEFT JOIN 
+                tabel_presensi p ON u.id_user = p.id_user AND p.tanggal = CURRENT_DATE -- KRITIS: Gunakan CURRENT_DATE (PostgreSQL)
+             WHERE 
+                u.id_user = $1 AND u.id_sekolah = $2`,
             [idUser, idSekolah]
         );
-        if (profilRows.length === 0) return res.status(404).json({ message: 'Profil tidak ditemukan.' });
 
-        const [presensiRows] = await pool.query(
-            "SELECT waktu_masuk, waktu_pulang FROM tabel_presensi WHERE id_user = $1 AND id_sekolah = $2 AND tanggal = CURDATE()",
-            [idUser, idSekolah]
-        );
-
-        let status_presensi = {};
-        if (presensiRows.length === 0) status_presensi.kondisi = 'BELUM_MASUK';
-        else if (presensiresult.rows[0].waktu_masuk && !presensiresult.rows[0].waktu_pulang) {
-            status_presensi.kondisi = 'SUDAH_MASUK';
-            status_presensi.jam_masuk = presensiresult.rows[0].waktu_masuk;
-        } else {
-            status_presensi.kondisi = 'SUDAH_PULANG';
-            status_presensi.jam_masuk = presensiresult.rows[0].waktu_masuk;
-            status_presensi.jam_pulang = presensiresult.rows[0].waktu_pulang;
+        const profil = result.rows[0]; // Ambil baris pertama dari hasil query
+        
+        if (!profil) {
+            // Seharusnya tidak terjadi jika token valid, tapi ini untuk jaga-jaga
+            return res.status(404).json({ message: 'Data profil user tidak ditemukan.' });
+        }
+        
+        // Tentukan status presensi
+        let statusSaatIni = 'BELUM_MASUK';
+        if (profil.waktu_masuk && !profil.waktu_pulang) {
+            statusSaatIni = 'SUDAH_MASUK';
+        } else if (profil.waktu_masuk && profil.waktu_pulang) {
+            statusSaatIni = 'SUDAH_PULANG';
         }
 
-        res.json({
-            profil: profilresult.rows[0],
-            status_presensi: status_presensi
+        // Kirim respons sukses
+        res.status(200).json({
+            nama_lengkap: profil.nama_lengkap,
+            role: profil.role,
+            foto_profil_url: profil.foto_profil_url,
+            status: statusSaatIni,
+            waktu_masuk: profil.waktu_masuk,
+            waktu_pulang: profil.waktu_pulang
         });
-    } catch (error) { res.status(500).json({ message: "Server error di /status" }); }
+
+    } catch (error) {
+        console.error("Error di rute /api/guru/status:", error);
+        res.status(500).json({ message: "Terjadi error internal saat memuat status presensi." });
+    }
 });
 
 // ================================================
-// RUTE BARU UNTUK PROFIL-GURU.HTML
+// RUTE 2: GET /profil (Mengambil Detail Profil)
 // ================================================
 
 router.get('/profil', async (req, res) => {
@@ -68,40 +92,44 @@ router.get('/profil', async (req, res) => {
         const idUser = req.user.userId;
         const idSekolah = req.user.sekolahId;
         
-const [profilRows] = await pool.query(
+        // KRITIS: Hapus destructuring array []
+        const profilResult = await pool.query( 
             `SELECT 
                 u.nama_lengkap, u.email, u.role, u.status, u.foto_profil, -- Data dari tabel_user (u)
                 g.nip_nipppk, g.jabatan -- Data dari tabel_guru (g)
             FROM 
                 tabel_user u 
-            LEFT JOIN -- Pakai LEFT JOIN agar profil tetap tampil meskipun data di tabel_guru belum ada
+            LEFT JOIN 
                 tabel_guru g ON u.id_user = g.id_user 
             WHERE 
                 u.id_user = $1 AND u.id_sekolah = $2`,
             [idUser, idSekolah]
         );
-        if (profilRows.length === 0) return res.status(404).json({ message: 'Profil tidak ditemukan.' });
+        if (profilResult.rows.length === 0) return res.status(404).json({ message: 'Profil tidak ditemukan.' });
         
-        // Kirim data BARU (semua ada di profilresult.rows[0])
+        // KRITIS: Perbaiki penamaan variabel: profilresult -> profilResult
         res.json({
             profil: {
-                nama_lengkap: profilresult.rows[0].nama_lengkap,
-                foto_profil: profilresult.rows[0].foto_profil
+                nama_lengkap: profilResult.rows[0].nama_lengkap,
+                foto_profil: profilResult.rows[0].foto_profil
             },
-            jabatan: profilresult.rows[0].jabatan, 
-            nip_nipppk: profilresult.rows[0].nip_nipppk, 
-            status: profilresult.rows[0].status
+            jabatan: profilResult.rows[0].jabatan, 
+            nip_nipppk: profilResult.rows[0].nip_nipppk, 
+            status: profilResult.rows[0].status
         });
 
     } catch (error) {
         console.error("Error di /api/guru/profil:", error);
-        // Jika error karena kolom belum ada, kirim pesan spesifik
         if (error.code === 'ER_BAD_FIELD_ERROR') {
             return res.status(500).json({ message: "Database belum di-update. Jalankan ALTER TABLE." });
         }
         res.status(500).json({ message: "Server error di /profil" });
     }
 });
+
+// ================================================
+// RUTE 3: POST /profil/foto (Update Foto Profil)
+// ================================================
 
 router.post('/profil/foto', upload.single('fotoProfil'), async (req, res) => {
     try {
@@ -112,7 +140,6 @@ router.post('/profil/foto', upload.single('fotoProfil'), async (req, res) => {
             return res.status(400).json({ message: 'Tidak ada file di-upload.' });
         }
         
-        // Simpan path file (relatif ke folder 'public')
         const filePath = req.file.path.replace('public', ''); 
 
         await pool.query(
@@ -128,6 +155,10 @@ router.post('/profil/foto', upload.single('fotoProfil'), async (req, res) => {
     }
 });
 
+// ================================================
+// RUTE 4: PUT /profil/password (Ubah Password)
+// ================================================
+
 router.put('/profil/password', async (req, res) => {
     try {
         const idUser = req.user.userId;
@@ -137,13 +168,15 @@ router.put('/profil/password', async (req, res) => {
             return res.status(400).json({ message: 'Konfirmasi password baru tidak cocok.' });
         }
 
-        const [userRows] = await pool.query(
+        // KRITIS: Hapus destructuring array []
+        const userResult = await pool.query(
             "SELECT password_hash FROM tabel_user WHERE id_user = $1",
             [idUser]
         );
-        if (userRows.length === 0) return res.status(404).json({ message: 'User tidak ditemukan.' });
+        if (userResult.rows.length === 0) return res.status(404).json({ message: 'User tidak ditemukan.' });
 
-        const user = userresult.rows[0];
+        // KRITIS: Ganti userresult -> userResult
+        const user = userResult.rows[0];
 
         // Cek password lama
         const isMatch = await bcrypt.compare(password_lama, user.password_hash);

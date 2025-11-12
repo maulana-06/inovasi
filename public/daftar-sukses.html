@@ -73,7 +73,6 @@
     const subdomain = params.get('subdomain'); 
     
     if (subdomain) {
-        // window.location.host mengambil host saat ini ('localhost:8080')
         const baseHost = window.location.host; 
 
         const loginUrl = `http://${subdomain}.${baseHost}/login.html`; 

@@ -39,11 +39,11 @@ document.addEventListener('DOMContentLoaded', () => {
     muatDataDasbor(); 
     window.addEventListener('focus', function() {
         console.log("[script-dashboard] Tab aktif, memuat ulang data...");
-        if (localStorage.getItem('token')) { // Cek token lagi
+        if (localStorage.getItem('token')) { 
             muatDataDasbor(); 
         } else {
              console.warn("[script-dashboard] Token hilang, tidak memuat ulang.");
-             // Arahkan ke login jika token hilang saat tab aktif
+
           window.location.href = 'index.html';
         }
     });
@@ -76,10 +76,23 @@ document.addEventListener('DOMContentLoaded', () => {
     async function muatDataDasbor() {
         const token = localStorage.getItem('token');
         try {
-            const response = await fetch('/api/dashboard/summary', {
-                headers: { 'Authorization': 'Bearer ' + token }
-            });
-            if (!response.ok) throw new Error('Gagal mengambil data dasbor.');
+        const response = await fetch('/api/dashboard/summary', { 
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            }
+        });
+        if (response.status === 401) { 
+            // 1. Hapus token kedaluwarsa
+//            localStorage.removeItem('token'); 
+//            localStorage.removeItem('user');
+            // 2. Paksa pindah ke halaman login
+            alert('Sesi Anda telah berakhir. Silakan login kembali.');
+            window.location.href = 'login.html'; 
+            return; // Hentikan eksekusi
+        }
+        if (!response.ok) throw new Error('Gagal mengambil data dasbor.');
             const data = await response.json();
 
             // 1. Update Kartu Ringkasan

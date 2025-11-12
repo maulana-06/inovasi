@@ -7,16 +7,12 @@ const pool = new Pool({
   password: process.env.DB_PASSWORD, 
   database: process.env.DB_DATABASE, 
   port: process.env.DB_PORT,
-    ssl: {
-    rejectUnauthorized: false,
-    // Baris ini terkadang membantu memaksa koneksi
-    requestCert: true 
-  },
-  
-  // Aturan Pool Connection
-  max: 20, // Batasi jumlah koneksi di Vercel
-  idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 2000,
+//    ssl: {
+//    rejectUnauthorized: false,
+//    requestCert: true 
+//  },
+    connectionTimeoutMillis: 10000, // Naikkan menjadi 10 detik
+    idleTimeoutMillis: 30000, // koneksi idle selama 30 detik
+    max: 20, // Jumlah koneksi maksimum
 });
-
 module.exports = pool;

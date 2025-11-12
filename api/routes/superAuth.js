@@ -1,11 +1,11 @@
-// File: routes/superAuth.js (BARU)
+// File: routes/superAuth.js (SUDAH DIKOREKSI)
 
 const express = require('express');
 const router = express.Router();
 const pool = require('../database'); 
 const bcrypt = require('bcryptjs'); 
 const jwt = require('jsonwebtoken'); 
-const JWT_SECRET = process.env.JWT_SECRET || 'kunci-rahasia-default'; 
+const JWT_SECRET = process.env.JWT_SECRET || 'KunciRahasiaBaruAndaYangPanjangDanAcak'; 
 
 router.post('/login', async (req, res) => {
     try {
@@ -16,29 +16,32 @@ router.post('/login', async (req, res) => {
         }
 
         // Cari user berdasarkan email DAN role 'superadmin'
-        const [userRows] = await pool.query(
-        "SELECT * FROM tabel_user WHERE email = $1 AND role = 'Super Admin'", 
-        [email]
+        // KOREKSI 1: Ganti destructuring array [] menjadi object result
+        const userResult = await pool.query( 
+            "SELECT * FROM tabel_user WHERE email = $1 AND role = 'Super Admin'", 
+            [email]
         );
-        const user = userresult.rows[0];
+        // KOREKSI 2: Gunakan userResult yang benar untuk mengambil baris pertama
+        const user = userResult.rows[0]; 
+        
         console.log("Login dengan email:", email);
         if (!user) {
             return res.status(401).json({ error: "Email dan Password salah !" });
         }
 
-        // --- BARU LAKUKAN VERIFIKASI PASSWORD DI SINI ---
+        // --- LAKUKAN VERIFIKASI PASSWORD ---
         const isPasswordValid = await bcrypt.compare(password, user.password_hash);
             if (!isPasswordValid) {
                 return res.status(401).json({ message: "Email atau password salah!" });
             }
 
-        // Buat token JWT khusus Super Admin
+        // --- Login Berhasil ---
         const tokenPayload = {
             userId: user.id_user,
-            role: user.role // 'Super Admin'
+            role: user.role
         };
 
-        const token = jwt.sign(tokenPayload, JWT_SECRET, { expiresIn: '1h' }); 
+        const token = jwt.sign(tokenPayload, JWT_SECRET, { expiresIn: '1h' });
 
         delete user.password_hash; 
 
