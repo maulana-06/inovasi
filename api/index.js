@@ -164,7 +164,7 @@ app.use('/api/superAuth', superAuthRoutes);
 app.get('/api', (req, res) => {
   res.status(200).send('API is running successfully on Vercel!');
 });
-
+/*
 const PORT = process.env.PORT || 5000; 
 
 if (process.env.NODE_ENV !== 'production') {
@@ -173,5 +173,5 @@ if (process.env.NODE_ENV !== 'production') {
         console.log("✅ Koneksi DB (Railway) akan diuji saat ada request.");
     });
 }
-
+*/
 module.exports = app;
